@@ -214,7 +214,7 @@ namespace Redirect
 
                     if (ImGui.Button($"{FontAwesomeIcon.PlusCircle.ToIconString()}##-{action.RowId}"))
                     {
-                        redirection.Priority.Add("Target");
+                        redirection.Priority.Add(Configuration.DefaultRedirection);
                     }
                     ImGui.PopFont();
 

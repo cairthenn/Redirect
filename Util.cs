@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Reflection;
+
 
 namespace Redirect
 {
@@ -17,7 +19,23 @@ namespace Redirect
 
         public static bool UsableByJob(this Action a, Job j)
         {
-            return true;
+            if(a.ClassJob.Value == j || a.ClassJob.Value == j.ClassJobParent.Value)
+            {
+                return true;
+            }
+
+            if(a.IsRoleAction || a.Icon == 0 || a.ClassJobLevel == 0 || a.ClassJobCategory.Value?.RowId <= 1)
+            {
+                return false;
+            }
+
+            var prop = typeof(Category).GetProperty(j.Abbreviation.ToString());
+            return (bool) prop?.GetValue(a.ClassJobCategory.Value)!;
+        }
+
+        public static bool HasOptionalTargeting(this Action a)
+        {
+            return a.CanTargetFriendly || a.CanTargetHostile || a.CanTargetParty || a.TargetArea;
         }
     }
 }

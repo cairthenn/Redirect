@@ -12,6 +12,8 @@ namespace Redirect
 
         public bool DisplayPVP { get; set; } = false;
 
+        public string DefaultRedirection { get; set; } = "UI Mouseover";
+
         public Dictionary<uint, Redirection> Redirections { get; set; } = new();
 
         [NonSerialized]

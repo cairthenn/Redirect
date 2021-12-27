@@ -28,14 +28,20 @@ namespace Redirect
         [PluginService]
         internal static DataManager DataManager { get; private set; } = null!;
 
+        [PluginService]
+        internal static SigScanner SigScanner { get; private set; } = null!;
+
         private Configuration Configuration { get; set; }
         private PluginUI PluginUi { get; set; }
+
+        private GameHooks Hooks;
 
         public Plugin()
         { 
             this.Configuration = Interface.GetPluginConfig() as Configuration ?? new Configuration();
             this.Configuration.Initialize(Interface);
             this.PluginUi = new PluginUI(this, this.Configuration);
+            this.Hooks = new GameHooks(this.Configuration);
 
             CommandManager.AddHandler(commandName, new CommandInfo(OnCommand)
             {
@@ -44,14 +50,15 @@ namespace Redirect
 
             Task.Factory.StartNew(CActions.Initialize);
 
-            var jobs = Plugin.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.ClassJob>()!.
-                Where(j => j.Role > 0 && j.ItemSoulCrystal.Value?.RowId > 0).ToList();
+            PluginLog.Information($"{this.Hooks.ResolveTarget("<me>")}");
         }
 
 
         public void Dispose()
         {
+            this.Hooks.Dispose();
             this.PluginUi.Dispose();
+            this.Configuration.Save();
             CommandManager.RemoveHandler(commandName);
         }
 

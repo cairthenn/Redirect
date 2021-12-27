@@ -30,15 +30,13 @@ namespace Redirect
         private CActions()
         {
             var all = Plugin.DataManager.GetExcelSheet<ActionInfo>()!;
-            role = all.Where(x => x.IsRoleAction);
+            role = all.Where(a => a.IsRoleAction && a.ClassJobLevel != 0 && a.HasOptionalTargeting());
             var jobs = Plugin.DataManager.GetExcelSheet<JobInfo>()!.
                 Where(j => j.Role > 0 && j.ItemSoulCrystal.Value?.RowId > 0).ToList();
 
-
             foreach (var job in jobs)
             {
-
-                this.jobs[job] = all.Where(a => (a.ClassJob.Value == job || a.ClassJob.Value == job.ClassJobParent.Value)).ToList();
+                this.jobs[job] = all.Where(a => a.HasOptionalTargeting() && a.UsableByJob(job)).ToList();
             }
         }
 
