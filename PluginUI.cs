@@ -6,12 +6,9 @@ using Dalamud.Game.Text.SeStringHandling;
 using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Interface;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
 
 namespace Redirect
 {
-    // It is good to have this be disposable in general, in case you ever need it
-    // to do any cleanup
     class PluginUI : IDisposable
     {
         const uint ICON_SIZE = 32;
@@ -64,31 +61,18 @@ namespace Redirect
 
             ImGui.SetNextWindowSize(new Vector2(450, 400), ImGuiCond.FirstUseEver);
 
-            if (!ImGui.Begin(this.Plugin.Name, ref this.MainWindowVisible, ImGuiWindowFlags.MenuBar))
+            if (!ImGui.Begin(this.Plugin.Name, ref this.MainWindowVisible))
             {
                 ImGui.End();
                 return;
             }
 
-            if (ImGui.BeginMenuBar())
-            {
-                if (ImGui.BeginMenu("Options"))
-                {
-                    ImGui.PushID("options-menu");
-                    if (ImGui.MenuItem("test"))
-                    {
-                        Dalamud.Logging.PluginLog.Information("test");
-                    }
-                    ImGui.EndMenu();
-                }
-                ImGui.EndMenuBar();
-            }
-
             if(ImGui.BeginChild("abilities", new Vector2(ImGui.GetContentRegionAvail().X * 0.25f, -1))) {
 
       
-                if (ImGui.TreeNode("Jobs"))
+                if (ImGui.TreeNodeEx("Jobs", ImGuiTreeNodeFlags.DefaultOpen))
                 {
+                    
                     if (ImGui.Selectable("Role Actions", SelectedRoleActions))
                     {
                         this.SelectedRoleActions = true;
@@ -150,12 +134,20 @@ namespace Redirect
 
         private void DrawActions()
         {
+            ImGui.InputTextWithHint("##search", "Search", ref search, 100);
+            ImGui.SameLine();
+
+            var show_pvp = this.Configuration.DisplayPVP;
+            if (ImGui.Checkbox("Show PVP Actions", ref show_pvp))
+            {
+                this.Configuration.DisplayPVP = show_pvp;
+                this.Configuration.Save();
+            }
+
             if (!this.SelectedRoleActions && this.SelectedJob is null)
             {
                 return;
             }
-
-            ImGui.InputTextWithHint("##search", "Search", ref search, 100);
 
             if (ImGui.BeginTable("actions", 4, ImGuiTableFlags.BordersInnerH))
             {
@@ -278,11 +270,8 @@ namespace Redirect
 
                     ImGui.Dummy(new Vector2(0, 2));
                 }
-
-
                 ImGui.EndTable();
             }
         }
     }
-
 }

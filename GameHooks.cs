@@ -1,12 +1,12 @@
-﻿using System;
+﻿using Dalamud.Game;
+using Dalamud.Game.ClientState;
+using Dalamud.Game.ClientState.Objects;
+using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Game.ClientState.Party;
 using Dalamud.Hooking;
 using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using Dalamud.Game.ClientState.Party;
-using Dalamud.Game.ClientState.Objects;
-using Dalamud.Game.ClientState;
-using Dalamud.Game;
-using Dalamud.Game.ClientState.Objects.Types;
+using System;
 using System.Runtime.InteropServices;
 
 namespace Redirect
@@ -22,16 +22,16 @@ namespace Redirect
         private TargetManager TargetManager => Services.TargetManager;
         private SigScanner SigScanner => Services.SigScanner;
 
-        private delegate bool OnAction(IntPtr t, ActionType p1, uint p2, uint p3, uint p4, uint p5, uint p6, ulong p7);
-        private delegate bool OnPlacedAction(IntPtr t, ActionType p1, uint p2, uint p3, ulong p4, uint p5);
-        
+        private delegate bool OnAction(IntPtr tp, ActionType t, uint id, uint target = 0xE000_0000, uint p4 = 0, uint p5 = 0, uint p6 = 0, IntPtr l = default);
+        private delegate bool OnPlacedAction(IntPtr tp, ActionType t, uint id, uint target = 0xE000_0000, IntPtr l = default, uint p5 = 0);
+
         private delegate void OnMouseoverEntity(IntPtr t, IntPtr entity);
 
         private volatile GameObject CurrentUIMouseover = null!;
 
-        private Hook<OnAction> action_hook = null!;
-        private Hook<OnPlacedAction> placed_action_hook = null!;
-        private Hook<OnMouseoverEntity> mouseover_hook = null!;
+        private Hook<OnAction> ActionHook = null!;
+        private Hook<OnPlacedAction> PlacedActionHook = null!;
+        private Hook<OnMouseoverEntity> MouseoverHook = null!;
 
         private Configuration Configuration;
 
@@ -43,7 +43,7 @@ namespace Redirect
             var placed_action_loc = SigScanner.ScanModule(OnPlacedActionSignature);
             var uimo_loc = SigScanner.ScanModule(OnUIMOSignature);
 
-            if(action_loc == IntPtr.Zero || uimo_loc == IntPtr.Zero || placed_action_loc == IntPtr.Zero)
+            if (action_loc == IntPtr.Zero || uimo_loc == IntPtr.Zero || placed_action_loc == IntPtr.Zero)
             {
                 PluginLog.Error("Unable to initialize game hooks");
                 return;
@@ -61,55 +61,66 @@ namespace Redirect
             PluginLog.Information($"Hooking action use @ {action_hook_address}");
             PluginLog.Information($"Hooking UI mouseover @ {uimo_hook_address}");
 
-            placed_action_hook = new Hook<OnPlacedAction>(placed_action_hook_address, new OnPlacedAction(OnPlacedActionCallback));
-            action_hook = new Hook<OnAction>(action_hook_address, new OnAction(OnActionCallback));
-            mouseover_hook = new Hook<OnMouseoverEntity>(uimo_hook_address, new OnMouseoverEntity(OnMouseoverEntityCallback));
+            PlacedActionHook = new Hook<OnPlacedAction>(placed_action_hook_address, new OnPlacedAction(OnPlacedActionCallback));
+            ActionHook = new Hook<OnAction>(action_hook_address, new OnAction(OnActionCallback));
+            MouseoverHook = new Hook<OnMouseoverEntity>(uimo_hook_address, new OnMouseoverEntity(OnMouseoverEntityCallback));
 
-            action_hook.Enable();
-            placed_action_hook.Enable();
-            mouseover_hook.Enable();
+            ActionHook.Enable();
+            PlacedActionHook.Enable();
+            MouseoverHook.Enable();
         }
 
-        private uint RedirectTarget(uint action_id)
+        private GameObject RedirectTarget(uint action_id)
         {
-            if(!Configuration.Redirections.ContainsKey(action_id))
+            if (!Configuration.Redirections.ContainsKey(action_id))
             {
-                return 0;
+                return null;
             }
 
-            foreach(var t in Configuration.Redirections[action_id].Priority)
+            foreach (var t in Configuration.Redirections[action_id].Priority)
             {
                 var nt = ResolveTarget(t);
                 if (nt != null)
                 {
-                    return nt.ObjectId;
+                    return nt;
                 }
             };
 
-            return 0;
+            return null;
         }
 
-        private bool OnActionCallback(IntPtr this_ptr, ActionType action_type, uint id, uint target = 0xE000_0000, uint unk_4 = 0, uint unk_5 = 0, uint unk_6 = 0, ulong location = 0)
+        private bool OnActionCallback(IntPtr this_ptr, ActionType action_type, uint id, uint target = 0xE000_0000, uint unk_4 = 0, uint unk_5 = 0, uint unk_6 = 0, IntPtr location = default)
         {
+            var res = Services.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Action>()!.GetRow(id)!;
             var new_target = RedirectTarget(id);
-
-            if (new_target != 0)
+            if (new_target != null)
             {
                 PluginLog.Information($"Changing target to {new_target}");
-                return this.action_hook.Original(this_ptr, action_type, id, new_target, unk_4, unk_5, unk_6, location);
+
+                if (res.TargetArea)
+                {
+                    // TODO: For some reason the vector becomes out of range, do some debugging and figure out how to not pepega
+
+                    //var gch = GCHandle.Alloc(new_target.Position, GCHandleType.Normal);
+                    //var new_location = (IntPtr) gch;
+                    //var result = this.PlacedActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, new_location);
+                } 
+                else
+                {
+                    return this.ActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, unk_4, unk_5, unk_6, location);
+                }
             }
 
-            return this.action_hook.Original(this_ptr, action_type, id, target, unk_4, unk_5, unk_6, location);
+            return this.ActionHook.Original(this_ptr, action_type, id, target, unk_4, unk_5, unk_6, location);
         }
-
-        private bool OnPlacedActionCallback(IntPtr this_ptr, ActionType action_type, uint id, uint target = 0xE000_0000, ulong location = 0, uint unk_5 = 0)
+        private unsafe bool OnPlacedActionCallback(IntPtr this_ptr, ActionType action_type, uint id, uint target = 0xE000_0000, IntPtr location = default, uint unk_5 = 0)
         {
-            return this.placed_action_hook.Original(this_ptr, action_type, id, target, location, unk_5);
+            return this.PlacedActionHook.Original(this_ptr, action_type, id, target, location, unk_5);
         }
 
         private void OnMouseoverEntityCallback(IntPtr this_ptr, IntPtr entity)
         {
-            this.mouseover_hook.Original(this_ptr, entity);
+            this.MouseoverHook.Original(this_ptr, entity);
 
             if (entity == IntPtr.Zero)
             {
@@ -157,10 +168,9 @@ namespace Redirect
         public void Dispose()
         {
             PluginLog.Information("Uninstalling game hooks");
-            this.action_hook?.Dispose();
-            this.placed_action_hook?.Dispose();
-            this.mouseover_hook?.Dispose();
-            this.mouseover_hook = null!;
+            this.ActionHook?.Dispose();
+            this.PlacedActionHook?.Dispose();
+            this.MouseoverHook?.Dispose();
         }
     }
 }
