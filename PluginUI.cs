@@ -268,7 +268,13 @@ namespace Redirect
                         redirection.RemoveAt(remove);
                     }
 
-                    Configuration.Redirections[action.RowId] = redirection.Count > 0 ? redirection : null!;
+                    if (redirection.Count > 0)
+                    {
+                        Configuration.Redirections[action.RowId] = redirection;
+                    } else
+                    {
+                        Configuration.Redirections.Remove(action.RowId);
+                    }
 
                     ImGui.Dummy(new Vector2(0, 2));
                 }
