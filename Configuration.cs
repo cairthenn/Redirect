@@ -16,17 +16,9 @@ namespace Redirect
 
         public Dictionary<uint, Redirection> Redirections { get; set; } = new();
 
-        [NonSerialized]
-        private DalamudPluginInterface? pluginInterface;
-
-        public void Initialize(DalamudPluginInterface pluginInterface)
-        {
-            this.pluginInterface = pluginInterface;
-        }
-
         public void Save()
         {
-            this.pluginInterface!.SavePluginConfig(this);
+            Services.Interface.SavePluginConfig(this);
         }
     }
 }

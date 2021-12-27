@@ -166,7 +166,7 @@ namespace Redirect
 
                 ImGui.TableHeadersRow();
 
-                var actions = this.SelectedRoleActions ? CActions.GetRoleActions() : CActions.GetJobActions(this.SelectedJob);
+                var actions = this.SelectedRoleActions ? Actions.GetRoleActions() : Actions.GetJobActions(this.SelectedJob);
 
                 var filtered = actions.Where(x =>
                 {

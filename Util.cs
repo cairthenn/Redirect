@@ -15,7 +15,7 @@ namespace Redirect
 
     static class Util
     {
-        public static readonly string[] TargetOptions = {"UI Mouseover", "Field Mouseover", "Target", "Focus", "Target of Target", "Self", "<2>", "<3>", "<4>", "<5>", "<6>", "<7>", "<8>"};
+        public static readonly string[] TargetOptions = {"UI Mouseover", "Model Mouseover", "Target", "Focus", "Target of Target", "Self", "<2>", "<3>", "<4>", "<5>", "<6>", "<7>", "<8>"};
 
         public static bool UsableByJob(this Action a, Job j)
         {

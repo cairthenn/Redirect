@@ -9,28 +9,28 @@ namespace Redirect
     using ActionInfo = Lumina.Excel.GeneratedSheets.Action;
     using JobInfo = Lumina.Excel.GeneratedSheets.ClassJob;
 
-    public class CActions
+    public class Actions
     {
         public static void Initialize()
         {
-            Dalamud.Logging.PluginLog.Information($"Job action information created: {Instance.GetHashCode()}");
+            Dalamud.Logging.PluginLog.Information($"[{Instance.GetHashCode()}] Job action information created");
         }
         public static IEnumerable<ActionInfo> GetJobActions(JobInfo job) => Instance.jobs[job];
 
         public static IEnumerable<ActionInfo> GetRoleActions() => Instance.role;
 
-        private static readonly Lazy<CActions> lazy = new Lazy<CActions>(() => new CActions());
+        private static readonly Lazy<Actions> lazy = new Lazy<Actions>(() => new Actions());
 
-        private static CActions Instance { get { return lazy.Value; } }
+        private static Actions Instance { get { return lazy.Value; } }
 
 
         private IEnumerable<ActionInfo> role = null!;
         private Dictionary<JobInfo, IEnumerable<ActionInfo>> jobs = new();
 
-        private CActions()
+        private Actions()
         {
             var all = Services.DataManager.GetExcelSheet<ActionInfo>()!;
-            role = all.Where(a => a.IsRoleAction && a.ClassJobLevel != 0 && a.HasOptionalTargeting());
+            role = all.Where(a => a.IsRoleAction && a.ClassJobLevel != 0 && a.HasOptionalTargeting()).ToList();
             var jobs = Services.DataManager.GetExcelSheet<JobInfo>()!.
                 Where(j => j.Role > 0 && j.ItemSoulCrystal.Value?.RowId > 0).ToList();
 

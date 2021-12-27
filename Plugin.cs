@@ -33,7 +33,6 @@ namespace Redirect
             Services.Initialize(i);
 
             this.Configuration = Interface.GetPluginConfig() as Configuration ?? new Configuration();
-            this.Configuration.Initialize(Interface);
             this.PluginUi = new PluginUI(this, this.Configuration);
             this.Hooks = new GameHooks(this.Configuration);
 
@@ -42,7 +41,7 @@ namespace Redirect
                 HelpMessage = "Adjust targeting priority for any action"
             });
 
-            Task.Factory.StartNew(CActions.Initialize);
+            Task.Factory.StartNew(Actions.Initialize);
         }
 
 
