@@ -29,9 +29,9 @@ namespace Redirect
 
         private CActions()
         {
-            var all = Plugin.DataManager.GetExcelSheet<ActionInfo>()!;
+            var all = Services.DataManager.GetExcelSheet<ActionInfo>()!;
             role = all.Where(a => a.IsRoleAction && a.ClassJobLevel != 0 && a.HasOptionalTargeting());
-            var jobs = Plugin.DataManager.GetExcelSheet<JobInfo>()!.
+            var jobs = Services.DataManager.GetExcelSheet<JobInfo>()!.
                 Where(j => j.Role > 0 && j.ItemSoulCrystal.Value?.RowId > 0).ToList();
 
             foreach (var job in jobs)

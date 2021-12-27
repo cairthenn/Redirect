@@ -19,25 +19,19 @@ namespace Redirect
 
         private const string commandName = "/redirect";
 
-        [PluginService] 
-        internal static DalamudPluginInterface Interface { get; private set; } = null!;
-
-        [PluginService]
-        internal static CommandManager CommandManager { get; private set; } = null!;
-
-        [PluginService]
-        internal static DataManager DataManager { get; private set; } = null!;
-
-        [PluginService]
-        internal static SigScanner SigScanner { get; private set; } = null!;
-
         private Configuration Configuration { get; set; }
         private PluginUI PluginUi { get; set; }
 
+        public DalamudPluginInterface Interface => Services.Interface;
+        public DataManager DataManager => Services.DataManager;
+        public CommandManager CommandManager => Services.CommandManager;
+
         private GameHooks Hooks;
 
-        public Plugin()
-        { 
+        public Plugin([RequiredVersion("1.0")] DalamudPluginInterface i)
+        {
+            Services.Initialize(i);
+
             this.Configuration = Interface.GetPluginConfig() as Configuration ?? new Configuration();
             this.Configuration.Initialize(Interface);
             this.PluginUi = new PluginUI(this, this.Configuration);
@@ -50,7 +44,7 @@ namespace Redirect
 
             Task.Factory.StartNew(CActions.Initialize);
 
-            PluginLog.Information($"{this.Hooks.ResolveTarget("<me>")}");
+            PluginLog.Information($"{this.Hooks.ResolveTarget("Self")}");
         }
 
 

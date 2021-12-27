@@ -5,7 +5,7 @@ using FFXIVClientStructs.FFXIV.Client.Game;
 using Dalamud.Game.ClientState.Party;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState;
-using Dalamud.IoC;
+using Dalamud.Game;
 
 namespace Redirect
 {
@@ -14,9 +14,10 @@ namespace Redirect
         private const string OnActionSignature = "E8 ?? ?? ?? ?? EB 64 B1 01";
         private const string ResolveTextSignature = "E8 ?? ?? ?? ?? 48 8B 5C 24 ?? EB 0C";
 
-        [PluginService] internal static PartyList PartyMembers { get; private set; } = null!;
-        [PluginService] internal static ClientState ClientState { get; private set; } = null!;
-        [PluginService] internal static TargetManager TargetManager { get; private set; } = null!;
+        private PartyList PartyMembers => Services.PartyMembers;
+        private ClientState ClientState => Services.ClientState;
+        private TargetManager TargetManager => Services.TargetManager;
+        private SigScanner SigScanner => Services.SigScanner;
 
         private delegate bool OnAction(IntPtr thisptr, ActionType p1, uint p2, uint p3, uint p4, uint p5, uint p6, ulong p7);
         private delegate void OnMouseoverEntity(IntPtr thisptr, IntPtr entity);
@@ -33,7 +34,7 @@ namespace Redirect
         public GameHooks(Configuration config)
         {
             this.Configuration = config;
-            var action_loc = Plugin.SigScanner.ScanModule(OnActionSignature);
+            var action_loc = SigScanner.ScanModule(OnActionSignature);
             //var resolve_loc = Plugin.SigScanner.ScanModule(ResolveTextSignature);
 
             if(action_loc == IntPtr.Zero)
@@ -55,7 +56,7 @@ namespace Redirect
             //resolve_hook = new Hook<ResolveText>(resolve_hook_address, new ResolveText(ResolveTextCallback));
 
             action_hook.Enable();
-            resolve_hook.Enable();
+            //resolve_hook.Enable();
         }
 
         private bool OnActionCallback(IntPtr thisptr, ActionType actionType, uint actionID, uint targetID = 0xE000_0000, uint a4 = 0, uint a5 = 0, uint a6 = 0, ulong a7 = 0)
@@ -76,7 +77,7 @@ namespace Redirect
             switch(target)
             {
                 case "Self":
-                    return ClientState.LocalPlayer!.Address;
+                    return ClientState.LocalPlayer == null ? IntPtr.Zero : ClientState.LocalPlayer.Address;
                 case "Target":
                     return TargetManager.Target == null ? IntPtr.Zero : TargetManager.Target.Address;
                 case "<2>":
