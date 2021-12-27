@@ -43,8 +43,6 @@ namespace Redirect
             });
 
             Task.Factory.StartNew(CActions.Initialize);
-
-            PluginLog.Information($"{this.Hooks.ResolveTarget("Self")}");
         }
 
 
