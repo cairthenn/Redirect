@@ -272,6 +272,8 @@ namespace Redirect
                         Configuration.Redirections.Remove(action.RowId);
                     }
 
+                    Configuration.Save();
+
                     ImGui.Dummy(new Vector2(0, 2));
                 }
                 ImGui.EndTable();
