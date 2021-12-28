@@ -134,6 +134,7 @@ namespace Redirect
 
         private void DrawActions()
         {
+            bool save = false;
             ImGui.InputTextWithHint("##search", "Search", ref search, 100);
             ImGui.SameLine();
 
@@ -209,7 +210,10 @@ namespace Redirect
                     if (ImGui.Button($"{FontAwesomeIcon.PlusCircle.ToIconString()}##-{action.RowId}"))
                     {
                         if(redirection.Count < MAX_REDIRECTS)
+                        {
                             redirection.Priority.Add(Configuration.DefaultRedirection);
+                            save = true;
+                        }
                     }
 
                     ImGui.PopFont();
@@ -234,6 +238,7 @@ namespace Redirect
                                 if (ImGui.Selectable(Util.TargetOptions[j], is_selected))
                                 {
                                     redirection[i] = Util.TargetOptions[j];
+                                    save = true;
                                 }
 
                                 if (is_selected)
@@ -253,6 +258,7 @@ namespace Redirect
                         if (ImGui.Button($"{FontAwesomeIcon.Trash.ToIconString()}##-{action.RowId}-{i}"))
                         {
                             remove = i;
+                            save = true;
 
                         }
                         ImGui.PopFont();
@@ -267,12 +273,16 @@ namespace Redirect
                     if (redirection.Count > 0)
                     {
                         Configuration.Redirections[action.RowId] = redirection;
+                        
                     } else
                     {
                         Configuration.Redirections.Remove(action.RowId);
                     }
 
-                    Configuration.Save();
+                    if(save)
+                    {
+                        Configuration.Save();
+                    }
 
                     ImGui.Dummy(new Vector2(0, 2));
                 }
