@@ -70,7 +70,7 @@ namespace Redirect
             MouseoverHook.Enable();
         }
 
-        private GameObject RedirectTarget(uint action_id)
+        private GameObject? RedirectTarget(uint action_id)
         {
             if (!Configuration.Redirections.ContainsKey(action_id))
             {
@@ -90,13 +90,25 @@ namespace Redirect
         }
 
         private bool OnActionCallback(IntPtr this_ptr, ActionType action_type, uint id, uint target = 0xE000_0000, uint unk_4 = 0, uint unk_5 = 0, uint unk_6 = 0, IntPtr location = default)
-        {
-            var res = Services.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.Action>()!.GetRow(id)!;
-            var new_target = RedirectTarget(id);
+        {          
+            // This handles automatic upgrading of action bar slots
+            // If the player can't place the action on their bar, use the base action for target resolution
+
+            var adj_id = id;
+            unsafe
+            {
+                var temp_id = ActionManager.fpGetAdjustedActionId(ActionManager.Instance(), id);
+                var res = Actions.GetRow(temp_id);
+                if(res != null && res.IsPlayerAction)
+                {
+                    adj_id = temp_id;
+                }
+            }
+
+            var new_target = RedirectTarget(adj_id);
             if (new_target != null)
             {
-                PluginLog.Information($"Changing target to {new_target}");
-
+                var res = Actions.GetRow(adj_id)!;
                 if (res.TargetArea)
                 {
                     // TODO: For some reason the vector becomes out of range, do some debugging and figure out how to not pepega

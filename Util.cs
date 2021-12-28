@@ -35,7 +35,7 @@ namespace Redirect
                 return true;
             }
             
-            if(a.IsRoleAction || a.CooldownGroup == 0 || a.Icon == 0 || a.ClassJobLevel == 0 || a.ClassJobCategory.Value?.RowId <= 1)
+            if(!a.IsPlayerAction || a.IsRoleAction)
             {
                 return false;
             }
