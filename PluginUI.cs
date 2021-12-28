@@ -1,8 +1,7 @@
-﻿using ImGuiNET;
-using System;
+﻿using System;
 using System.Numerics;
+using ImGuiNET;
 using ImGuiScene;
-using Dalamud.Game.Text.SeStringHandling;
 using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Interface;
@@ -12,6 +11,7 @@ namespace Redirect
     class PluginUI : IDisposable
     {
         const uint ICON_SIZE = 32;
+        const uint MAX_REDIRECTS = 8;
         private Plugin Plugin { get; } = null!;
         private Configuration Configuration { get; } = null!;
         private List<Lumina.Excel.GeneratedSheets.ClassJob> Jobs { get; } = null!;
@@ -204,10 +204,14 @@ namespace Redirect
 
                     redirection = redirection ?? new() { ID = action.RowId };
 
+                    // TODO: Disable the button? Why isn't this possible
+
                     if (ImGui.Button($"{FontAwesomeIcon.PlusCircle.ToIconString()}##-{action.RowId}"))
                     {
-                        redirection.Priority.Add(Configuration.DefaultRedirection);
+                        if(redirection.Count < MAX_REDIRECTS)
+                            redirection.Priority.Add(Configuration.DefaultRedirection);
                     }
+
                     ImGui.PopFont();
 
                     ImGui.TableNextColumn();

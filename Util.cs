@@ -15,16 +15,27 @@ namespace Redirect
 
     static class Util
     {
+        private static readonly HashSet<string> ActionBlacklist = new HashSet<string>() { 
+            "Ley Lines",
+            "Between the Lines",
+            "Regress"
+        };
+        
         public static readonly string[] TargetOptions = {"UI Mouseover", "Model Mouseover", "Target", "Focus", "Target of Target", "Self", "<2>", "<3>", "<4>", "<5>", "<6>", "<7>", "<8>"};
 
         public static bool UsableByJob(this Action a, Job j)
         {
+            if(ActionBlacklist.Contains(a.Name))
+            {
+                return false;
+            }
+            
             if(a.ClassJob.Value == j || a.ClassJob.Value == j.ClassJobParent.Value)
             {
                 return true;
             }
-
-            if(a.IsRoleAction || a.Icon == 0 || a.ClassJobLevel == 0 || a.ClassJobCategory.Value?.RowId <= 1)
+            
+            if(a.IsRoleAction || a.CooldownGroup == 0 || a.Icon == 0 || a.ClassJobLevel == 0 || a.ClassJobCategory.Value?.RowId <= 1)
             {
                 return false;
             }
