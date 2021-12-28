@@ -159,19 +159,19 @@ namespace Redirect
                 case "Focus":
                     return TargetManager.FocusTarget;
                 case "<2>":
-                    return PartyMembers.Length > 0 ? PartyMembers[1]!.GameObject : null;
+                    return PartyMembers.Length > 1 ? PartyMembers[1]!.GameObject : null;
                 case "<3>":
-                    return PartyMembers.Length > 1 ? PartyMembers[2]!.GameObject : null;
+                    return PartyMembers.Length > 2 ? PartyMembers[2]!.GameObject : null;
                 case "<4>":
-                    return PartyMembers.Length > 2 ? PartyMembers[3]!.GameObject : null;
+                    return PartyMembers.Length > 3 ? PartyMembers[3]!.GameObject : null;
                 case "<5>":
-                    return PartyMembers.Length > 3 ? PartyMembers[4]!.GameObject : null;
+                    return PartyMembers.Length > 4 ? PartyMembers[4]!.GameObject : null;
                 case "<6>":
-                    return PartyMembers.Length > 4 ? PartyMembers[5]!.GameObject : null;
+                    return PartyMembers.Length > 5 ? PartyMembers[5]!.GameObject : null;
                 case "<7>":
-                    return PartyMembers.Length > 5 ? PartyMembers[6]!.GameObject : null;
+                    return PartyMembers.Length > 6 ? PartyMembers[6]!.GameObject : null;
                 case "<8>":
-                    return PartyMembers.Length > 6 ? PartyMembers[7]!.GameObject : null;
+                    return PartyMembers.Length > 7 ? PartyMembers[7]!.GameObject : null;
                 default:
                     return null;
             }
