@@ -1,0 +1,14 @@
+{
+  "Author": "Cair",
+  "Name": "Redirect",
+  "Punchline": "Change where your actions are going.",
+  "Description": "Allows you to customize target priorities for individual actions. Type /redirect to configure.",
+  "InternalName": "Redirect",
+  "ApplicableVersion": "any",
+  "Tags": [
+    "redirect",
+    "action",
+    "cair",
+    "mouseover"
+  ]
+}
