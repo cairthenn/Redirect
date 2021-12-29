@@ -3,9 +3,9 @@
   <PropertyGroup>
     <Authors></Authors>
     <Company></Company>
-    <Version>0.0.0.1</Version>
-    <Description>Change where your actions are headed</Description>
-    <Copyright>Cair</Copyright>
+    <Version>1.0.0.0</Version>
+    <Description>Action target switching plugin for Dalamud.</Description>
+    <Copyright>Cair © 2021</Copyright>
     <PackageProjectUrl>https://github.com/cairthenn/Redirect</PackageProjectUrl>
   </PropertyGroup>
 
