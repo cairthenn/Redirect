@@ -25,11 +25,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="redirect.json" />
+    <None Remove="Redirect.json" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="redirect.json">
+    <Content Include="Redirect.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
