@@ -12,7 +12,7 @@ This plugin has a single command, `/redirect`, that opens the configuration.
 
 Open the plugin configuration and select the job you are interested in setting up a mouseover for. Scroll through the action list, or use the search feature, to locate the action you wish to modify. If you cannot find the ability, it is not currently supported.
 
-Once you have located the action, click the + button next to it. You are now done! If you mousover a UI element while using that spell, it will cast there instead. If not, the default target for the action will be attempted.
+Once you have located the action, click the + button next to it. Assuming the drop down box that appeared says "UI Mouseover", you are now done! If you mouseover a UI element while using that spell, it will cast there instead. If not, the default target for the action will be attempted.
 
 ### What target options are available?
 
