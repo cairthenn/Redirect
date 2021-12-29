@@ -89,9 +89,13 @@ namespace Redirect
             return null;
         }
 
-        private unsafe bool OnActionCallback(IntPtr this_ptr, ActionType action_type, uint id, uint target, uint unk_4, uint origin, uint pvp, ref Vector3 location)
+        private unsafe bool OnActionCallback(IntPtr this_ptr, ActionType action_type, uint id, uint target, uint unk_1, uint origin, uint unk_2, ref Vector3 location)
         {
-            PluginLog.Information($"Action Request -- Type: {action_type}, ID: {id}, Target: {target}, Unk4: {unk_4}, Origin: {origin}, PVP: {pvp}");
+            if(action_type != ActionType.Spell)
+            {
+                return this.ActionHook.Original(this_ptr, action_type, id, target, unk_1, origin, unk_2, ref location);
+            }
+            
             var adj_id = id;
             unsafe
             {
@@ -129,14 +133,13 @@ namespace Redirect
                     return this.PlaceActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, ref new_location);
                 } 
 
-                return this.ActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, unk_4, origin, pvp, ref location);
+                return this.ActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, unk_1, origin, unk_2, ref location);
             }
 
-            return this.ActionHook.Original(this_ptr, action_type, id, target, unk_4, origin, pvp, ref location);
+            return this.ActionHook.Original(this_ptr, action_type, id, target, unk_1, origin, unk_2, ref location);
         }
         private bool OnPlacedActionCallback(IntPtr this_ptr, ActionType action_type, uint id, uint target, ref Vector3 location, uint unk)
         {
-            PluginLog.Information($"{this_ptr}.PlaceActionAt: id: {id}, target: {target} [ x:{location.X}, y: {location.Y}, z: {location.Z}], unk: {unk}");
             return this.PlaceActionHook.Original(this_ptr, action_type, id, target, ref location, unk);
         }
 
