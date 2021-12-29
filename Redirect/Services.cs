@@ -7,6 +7,7 @@ using Dalamud.Game.Command;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Game.Gui;
+using Dalamud.Game.Gui.Toast;
 
 namespace Redirect
 {
@@ -39,6 +40,9 @@ namespace Redirect
 
         [PluginService]
         public static GameGui GameGui { get; private set; } = null!;
+
+        [PluginService]
+        public static ToastGui ToastGui { get; private set; } = null!;
 
         public static void Initialize(DalamudPluginInterface i)
         {

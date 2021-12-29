@@ -115,6 +115,7 @@ namespace Redirect
                 var success = Services.GameGui.ScreenToWorld(ImGui.GetMousePos(), out var game_coords);
                 if (ActionManager.fpIsRecastTimerActive(ActionManager.Instance(), action_type, id) > 0)
                 {
+                    Services.ToastGui.ShowError("Not yet ready.");
                     return false;
                 }
                 return this.PlaceActionHook.Original(this_ptr, action_type, id, target, ref game_coords);
@@ -127,6 +128,7 @@ namespace Redirect
                 {
                     if (ActionManager.fpIsRecastTimerActive(ActionManager.Instance(), action_type, id) > 0)
                     {
+                        Services.ToastGui.ShowError("Not yet ready.");
                         return false;
                     }
                     var new_location = new_target.Position;
