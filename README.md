@@ -6,7 +6,7 @@ The plugin enables seamless use of mouseover and focus target functionality by a
 
 ### Commands
 
-This plugin has a single command, `/redirect`, that open the configuration.
+This plugin has a single command, `/redirect`, that opens the configuration.
 
 ### How do I setup a UI mouseover?
 
@@ -30,3 +30,15 @@ The following are currently supported options:
 ### Why can I add more than one target option to a single action?
 
 The final target is selected based on a priority system from top to bottom. Once a match is made, that target will be used and anything below it will be ignore. If no match is made, the default target for the action will be attempted.
+
+### What actions are supported?
+
+Just about anything you can use on a different target or place on the ground is supported. This excludes things like Lost Actions, or any Duty Action. If you think an action should be supported and isn't, feel free to create an issue.
+
+### Why do SCH/SMN have [...]?
+
+Arcanist is weird.
+
+### I have a different problem / I want to suggest something!
+
+Please create an issue if one doesn't exist already. Keep in mind that requests aren't guaranteed to be fulfilled!
