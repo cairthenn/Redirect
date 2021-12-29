@@ -1,18 +1,12 @@
 ﻿using Dalamud.Data;
-using Dalamud.Game;
-using Dalamud.Game.ClientState;
 using Dalamud.Game.Command;
 using Dalamud.IoC;
 using Dalamud.Plugin;
-using Dalamud.Logging;
-using System.Reflection;
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Redirect
 {
-    using Log = Dalamud.Logging.PluginLog;
     public class Plugin : IDalamudPlugin, IDisposable
     {
         public string Name => "Redirect";
@@ -43,7 +37,6 @@ namespace Redirect
 
             Task.Factory.StartNew(Actions.Initialize);
         }
-
 
         public void Dispose()
         {

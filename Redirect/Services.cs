@@ -7,13 +7,11 @@ using Dalamud.Game.Command;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Game.Gui;
-using Dalamud.Game.Gui.Toast;
 
 namespace Redirect
 {
     public class Services
     {
-
         [PluginService]
         public static DalamudPluginInterface Interface { get; private set; } = null!;
 

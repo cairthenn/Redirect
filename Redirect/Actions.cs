@@ -14,6 +14,8 @@ namespace Redirect
     {
         public static void Initialize()
         {
+            // This is silly but it creates the singleton in the background and populates filtered job actions
+
             Dalamud.Logging.PluginLog.Information($"[{Instance.GetHashCode()}] Job action information created");
         }
         public static IEnumerable<ActionInfo> GetJobActions(JobInfo job) => Instance.jobs[job];
