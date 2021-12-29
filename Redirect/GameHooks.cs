@@ -113,11 +113,11 @@ namespace Redirect
             if(place_at_cursor)
             {
                 var success = Services.GameGui.ScreenToWorld(ImGui.GetMousePos(), out var game_coords);
-                if (ActionManager.fpIsRecastTimerActive(ActionManager.Instance(), action_type, id) > 0)
+                if (ActionManager.fpIsRecastTimerActive(ActionManager.Instance(), action_type, adj_id) > 0)
                 {
-                    Services.ToastGui.ShowError("Not yet ready.");
-                    return false;
+                    return this.ActionHook.Original(this_ptr, action_type, id, target, unk_1, origin, unk_2, ref location);
                 }
+
                 return this.PlaceActionHook.Original(this_ptr, action_type, id, target, ref game_coords);
             }
 
@@ -126,12 +126,11 @@ namespace Redirect
                 var res = Actions.GetRow(adj_id)!;
                 if (res.TargetArea)
                 {
-                    if (ActionManager.fpIsRecastTimerActive(ActionManager.Instance(), action_type, id) > 0)
-                    {
-                        Services.ToastGui.ShowError("Not yet ready.");
-                        return false;
-                    }
                     var new_location = new_target.Position;
+                    if (ActionManager.fpIsRecastTimerActive(ActionManager.Instance(), action_type, adj_id) > 0)
+                    {
+                        return this.ActionHook.Original(this_ptr, action_type, id, target, unk_1, origin, unk_2, ref location);
+                    }
                     return this.PlaceActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, ref new_location);
                 } 
 

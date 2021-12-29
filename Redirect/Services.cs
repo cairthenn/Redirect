@@ -41,9 +41,6 @@ namespace Redirect
         [PluginService]
         public static GameGui GameGui { get; private set; } = null!;
 
-        [PluginService]
-        public static ToastGui ToastGui { get; private set; } = null!;
-
         public static void Initialize(DalamudPluginInterface i)
         {
             i.Create<Services>();
