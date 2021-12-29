@@ -16,12 +16,13 @@ namespace Redirect
     static class Util
     {
         private static readonly HashSet<string> ActionBlacklist = new HashSet<string>() { 
+            // These don't work anyway, but they're technically "ground target" placement so they get thrown in
             "Ley Lines",
             "Between the Lines",
             "Regress"
         };
         
-        public static readonly string[] TargetOptions = {"UI Mouseover", "Model Mouseover", "Target", "Focus", "Target of Target", "Self", "<2>", "<3>", "<4>", "<5>", "<6>", "<7>", "<8>"};
+        public static readonly string[] TargetOptions = {"Cursor","UI Mouseover", "Model Mouseover", "Target", "Focus", "Target of Target", "Self", "<2>", "<3>", "<4>", "<5>", "<6>", "<7>", "<8>"};
 
         public static bool UsableByJob(this Action a, Job j)
         {

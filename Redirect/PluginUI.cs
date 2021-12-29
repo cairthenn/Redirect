@@ -11,7 +11,7 @@ namespace Redirect
     class PluginUI : IDisposable
     {
         const uint ICON_SIZE = 32;
-        const uint MAX_REDIRECTS = 8;
+        const uint MAX_REDIRECTS = 10;
         private Plugin Plugin { get; } = null!;
         private Configuration Configuration { get; } = null!;
         private List<Lumina.Excel.GeneratedSheets.ClassJob> Jobs { get; } = null!;
@@ -234,7 +234,12 @@ namespace Redirect
 
                             for (int j = 0; j < Util.TargetOptions.Length; j++)
                             {
-                                bool is_selected = (Util.TargetOptions[j] == redirection[i]);
+                                if(Util.TargetOptions[j] == "Cursor" && !action.TargetArea)
+                                {
+                                    continue;
+                                }
+
+                                    bool is_selected = (Util.TargetOptions[j] == redirection[i]);
                                 if (ImGui.Selectable(Util.TargetOptions[j], is_selected))
                                 {
                                     redirection[i] = Util.TargetOptions[j];
@@ -247,6 +252,7 @@ namespace Redirect
                                 }
 
                             }
+
                             ImGui.EndCombo();
                         }
 

@@ -6,7 +6,7 @@ using Dalamud.Game.ClientState.Party;
 using Dalamud.Game.Command;
 using Dalamud.IoC;
 using Dalamud.Plugin;
-using Dalamud.Game.ClientState;
+using Dalamud.Game.Gui;
 
 namespace Redirect
 {
@@ -33,8 +33,12 @@ namespace Redirect
 
         [PluginService]
         public static TargetManager TargetManager { get; private set; } = null!;
+
         [PluginService]
         public static ObjectTable ObjectTable { get; private set; } = null!;
+
+        [PluginService]
+        public static GameGui GameGui { get; private set; } = null!;
 
         public static void Initialize(DalamudPluginInterface i)
         {
