@@ -1,6 +1,6 @@
-﻿using Dalamud.Configuration;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using Dalamud.Configuration;
 
 namespace Redirect
 {

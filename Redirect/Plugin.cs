@@ -26,9 +26,9 @@ namespace Redirect
         {
             Services.Initialize(i);
 
-            this.Configuration = Interface.GetPluginConfig() as Configuration ?? new Configuration();
-            this.PluginUi = new PluginUI(this, this.Configuration);
-            this.Hooks = new GameHooks(this.Configuration);
+            Configuration = Interface.GetPluginConfig() as Configuration ?? new Configuration();
+            PluginUi = new PluginUI(this, Configuration);
+            Hooks = new GameHooks(Configuration);
 
             CommandManager.AddHandler(commandName, new CommandInfo(OnCommand)
             {
@@ -40,15 +40,15 @@ namespace Redirect
 
         public void Dispose()
         {
-            this.Hooks.Dispose();
-            this.PluginUi.Dispose();
-            this.Configuration.Save();
+            Hooks.Dispose();
+            PluginUi.Dispose();
+            Configuration.Save();
             CommandManager.RemoveHandler(commandName);
         }
 
         private void OnCommand(string command, string args)
         {
-            this.PluginUi.MainWindowVisible = true;
+            PluginUi.MainWindowVisible = true;
         }
 
     }

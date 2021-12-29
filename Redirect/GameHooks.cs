@@ -39,7 +39,7 @@ namespace Redirect
 
         public GameHooks(Configuration config)
         {
-            this.Configuration = config;
+            Configuration = config;
             var action_loc = SigScanner.ScanModule(ActionSignature);
             var placed_action_loc = SigScanner.ScanModule(PlaceActionSignature);
             var uimo_loc = SigScanner.ScanModule(UIMOSignature);
@@ -93,7 +93,7 @@ namespace Redirect
         {
             if(action_type != ActionType.Spell)
             {
-                return this.ActionHook.Original(this_ptr, action_type, id, target, unk_1, origin, unk_2, ref location);
+                return ActionHook.Original(this_ptr, action_type, id, target, unk_1, origin, unk_2, ref location);
             }
             
             var adj_id = id;
@@ -115,10 +115,10 @@ namespace Redirect
                 var success = Services.GameGui.ScreenToWorld(ImGui.GetMousePos(), out var game_coords);
                 if (ActionManager.fpIsRecastTimerActive(ActionManager.Instance(), action_type, adj_id) > 0)
                 {
-                    return this.ActionHook.Original(this_ptr, action_type, id, target, unk_1, origin, unk_2, ref location);
+                    return ActionHook.Original(this_ptr, action_type, id, target, unk_1, origin, unk_2, ref location);
                 }
 
-                return this.PlaceActionHook.Original(this_ptr, action_type, id, target, ref game_coords);
+                return PlaceActionHook.Original(this_ptr, action_type, id, target, ref game_coords);
             }
 
             if (new_target != null)
@@ -129,32 +129,32 @@ namespace Redirect
                     var new_location = new_target.Position;
                     if (ActionManager.fpIsRecastTimerActive(ActionManager.Instance(), action_type, adj_id) > 0)
                     {
-                        return this.ActionHook.Original(this_ptr, action_type, id, target, unk_1, origin, unk_2, ref location);
+                        return ActionHook.Original(this_ptr, action_type, id, target, unk_1, origin, unk_2, ref location);
                     }
-                    return this.PlaceActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, ref new_location);
+                    return PlaceActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, ref new_location);
                 } 
 
-                return this.ActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, unk_1, origin, unk_2, ref location);
+                return ActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, unk_1, origin, unk_2, ref location);
             }
 
-            return this.ActionHook.Original(this_ptr, action_type, id, target, unk_1, origin, unk_2, ref location);
+            return ActionHook.Original(this_ptr, action_type, id, target, unk_1, origin, unk_2, ref location);
         }
         private bool OnPlacedActionCallback(IntPtr this_ptr, ActionType action_type, uint id, uint target, ref Vector3 location, uint unk)
         {
-            return this.PlaceActionHook.Original(this_ptr, action_type, id, target, ref location, unk);
+            return PlaceActionHook.Original(this_ptr, action_type, id, target, ref location, unk);
         }
 
         private void OnMouseoverEntityCallback(IntPtr this_ptr, IntPtr entity)
         {
-            this.MouseoverHook.Original(this_ptr, entity);
+            MouseoverHook.Original(this_ptr, entity);
 
             if (entity == IntPtr.Zero)
             {
-                this.CurrentUIMouseover = null!;
+                CurrentUIMouseover = null!;
             } 
             else
             {
-                this.CurrentUIMouseover = Services.ObjectTable.CreateObjectReference(entity)!;
+                CurrentUIMouseover = Services.ObjectTable.CreateObjectReference(entity)!;
             }
         }
 
@@ -196,10 +196,9 @@ namespace Redirect
 
         public void Dispose()
         {
-            PluginLog.Information("Uninstalling game hooks");
-            this.ActionHook?.Dispose();
-            this.PlaceActionHook?.Dispose();
-            this.MouseoverHook?.Dispose();
+            ActionHook?.Dispose();
+            PlaceActionHook?.Dispose();
+            MouseoverHook?.Dispose();
         }
     }
 }

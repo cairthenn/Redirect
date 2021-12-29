@@ -26,11 +26,11 @@ namespace Redirect
 
         public PluginUI(Plugin plugin, Configuration config)
         {
-            this.Plugin = plugin;
-            this.Configuration = config;
+            Plugin = plugin;
+            Configuration = config;
 
-           Plugin.Interface.UiBuilder.Draw += this.Draw;
-           Plugin.Interface.UiBuilder.OpenConfigUi += this.OnOpenConfig;
+           Plugin.Interface.UiBuilder.Draw += Draw;
+           Plugin.Interface.UiBuilder.OpenConfigUi += OnOpenConfig;
 
             Jobs = Plugin.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.ClassJob>()!.
                 Where(j => j.Role > 0 && j.ItemSoulCrystal.Value?.RowId > 0).ToList();
@@ -39,13 +39,13 @@ namespace Redirect
 
         private void OnOpenConfig()
         {
-            this.MainWindowVisible = true;
+            MainWindowVisible = true;
         }
 
         public void Dispose()
         {
-            Plugin.Interface.UiBuilder.OpenConfigUi -= this.OnOpenConfig;
-            Plugin.Interface.UiBuilder.Draw -= this.Draw;
+            Plugin.Interface.UiBuilder.OpenConfigUi -= OnOpenConfig;
+            Plugin.Interface.UiBuilder.Draw -= Draw;
             foreach(var icon in Icons.Values)
             {
                 icon.Dispose();
@@ -61,7 +61,7 @@ namespace Redirect
 
             ImGui.SetNextWindowSize(new Vector2(450, 400), ImGuiCond.FirstUseEver);
 
-            if (!ImGui.Begin(this.Plugin.Name, ref this.MainWindowVisible))
+            if (!ImGui.Begin(Plugin.Name, ref MainWindowVisible))
             {
                 ImGui.End();
                 return;
@@ -75,16 +75,16 @@ namespace Redirect
                     
                     if (ImGui.Selectable("Role Actions", SelectedRoleActions))
                     {
-                        this.SelectedRoleActions = true;
-                        this.SelectedJob = null!;
+                        SelectedRoleActions = true;
+                        SelectedJob = null!;
                     }
 
                     foreach (var job in Jobs)
                     {
-                        if (ImGui.Selectable(job.Abbreviation, this.SelectedJob == job))
+                        if (ImGui.Selectable(job.Abbreviation, SelectedJob == job))
                         {
-                            this.SelectedJob = job;
-                            this.SelectedRoleActions = false;
+                            SelectedJob = job;
+                            SelectedRoleActions = false;
                         }
                     }
 
@@ -98,7 +98,7 @@ namespace Redirect
 
             if(ImGui.BeginChild("ability-view", new Vector2(-1, -1)))
             {
-                this.DrawActions();
+                DrawActions();
                 ImGui.EndChild();
             }
 
@@ -107,13 +107,13 @@ namespace Redirect
 
         private TextureWrap? FetchTexture(ushort id)
         {
-            this.Icons.TryGetValue(id, out TextureWrap? texture);
+            Icons.TryGetValue(id, out TextureWrap? texture);
             
             if(texture is null && id > 0)
             {
                 texture = Plugin.DataManager.GetImGuiTextureIcon(id);
                 if(texture is not null) { 
-                    this.Icons[id] = texture;
+                    Icons[id] = texture;
                 }
             }
 
@@ -138,14 +138,14 @@ namespace Redirect
             ImGui.InputTextWithHint("##search", "Search", ref search, 100);
             ImGui.SameLine();
 
-            var show_pvp = this.Configuration.DisplayPVP;
+            var show_pvp = Configuration.DisplayPVP;
             if (ImGui.Checkbox("Show PVP Actions", ref show_pvp))
             {
-                this.Configuration.DisplayPVP = show_pvp;
-                this.Configuration.Save();
+                Configuration.DisplayPVP = show_pvp;
+                Configuration.Save();
             }
 
-            if (!this.SelectedRoleActions && this.SelectedJob is null)
+            if (!SelectedRoleActions && SelectedJob is null)
             {
                 return;
             }
@@ -159,7 +159,7 @@ namespace Redirect
 
                 ImGui.TableHeadersRow();
 
-                var actions = this.SelectedRoleActions ? Actions.GetRoleActions() : Actions.GetJobActions(this.SelectedJob);
+                var actions = SelectedRoleActions ? Actions.GetRoleActions() : Actions.GetJobActions(SelectedJob);
 
                 var filtered = actions.Where(x =>
                 {
@@ -186,7 +186,7 @@ namespace Redirect
                     // ICON
 
                     ImGui.TableNextColumn();
-                    this.DrawIcon(action.Icon, dims);
+                    DrawIcon(action.Icon, dims);
 
                     // ACTION NAME
 

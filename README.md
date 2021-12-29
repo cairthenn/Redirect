@@ -29,7 +29,7 @@ The following are currently supported options:
 
 ### Why can I add more than one target option to a single action?
 
-The final target is selected based on a priority system from top to bottom. Once a match is made, that target will be used and anything below it will be ignore. If no match is made, the default target for the action will be attempted.
+The final target is selected based on a priority system from top to bottom. Once a match is made, that target will be used and anything below it will be ignored. If no match is made, the default target for the action will be attempted.
 
 ### What actions are supported?
 
