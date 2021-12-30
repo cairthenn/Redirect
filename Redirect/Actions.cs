@@ -39,7 +39,7 @@ namespace Redirect
 
             foreach (var job in jobs)
             {
-                Jobs[job] = Sheet.Where(a => a.HasOptionalTargeting() && a.UsableByJob(job)).ToList();
+                Jobs[job] = Sheet.Where(a => (a.HasOptionalTargeting() && a.UsableByJob(job)) || job.IsActionWhiteListed(a)).ToList();
             }
         }
 

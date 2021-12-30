@@ -11,7 +11,7 @@ namespace Redirect
     {
         public string Name => "Redirect";
 
-        private const string commandName = "/redirect";
+        private const string CommandName = "/redirect";
 
         private Configuration Configuration { get; set; }
         private PluginUI PluginUi { get; set; }
@@ -30,7 +30,7 @@ namespace Redirect
             PluginUi = new PluginUI(this, Configuration);
             Hooks = new GameHooks(Configuration);
 
-            CommandManager.AddHandler(commandName, new CommandInfo(OnCommand)
+            CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
             {
                 HelpMessage = "Adjust targeting priority for any action"
             });
@@ -43,7 +43,7 @@ namespace Redirect
             Hooks.Dispose();
             PluginUi.Dispose();
             Configuration.Save();
-            CommandManager.RemoveHandler(commandName);
+            CommandManager.RemoveHandler(CommandName);
         }
 
         private void OnCommand(string command, string args)
