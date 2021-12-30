@@ -22,7 +22,7 @@ namespace Redirect
             [0x21] = new HashSet<uint>() { 17055 },
         };
         
-        public static readonly string[] TargetOptions = {"Cursor","UI Mouseover", "Model Mouseover", "Target", "Focus", "Target of Target", "Self", "<2>", "<3>", "<4>", "<5>", "<6>", "<7>", "<8>"};
+        public static readonly string[] TargetOptions = {"Cursor", "UI Mouseover", "Model Mouseover", "Target", "Focus", "Target of Target", "Self", "<2>", "<3>", "<4>", "<5>", "<6>", "<7>", "<8>"};
 
         public static bool UsableByJob(this Action a, Job j)
         {
