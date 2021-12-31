@@ -4,7 +4,7 @@ Redirect is a [Dalamud](https://github.com/goatcorp/Dalamud) plugin for Final Fa
 
 The plugin enables seamless use of mouseover and focus target functionality by allowing you to change the base targeting priority of each action on your bars.
 
-![Redirect preview](https://github.com/cairthenn/Redirect/blob/main/preview.jpg?raw=true)
+![Redirect preview](https://github.com/cairthenn/Redirect/blob/main/preview.png?raw=true)
 
 ### Commands
 
