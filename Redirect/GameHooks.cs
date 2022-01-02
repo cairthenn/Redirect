@@ -40,18 +40,18 @@ namespace Redirect
         public GameHooks(Configuration config)
         {
             Configuration = config;
-            var tryation_ptr = SigScanner.ScanModule(TryActionSignature);
+            var tryaction_ptr = SigScanner.ScanModule(TryActionSignature);
             var useaction_ptr = SigScanner.ScanModule(UseActionSignature);
             var uimo_ptr = SigScanner.ScanModule(UIMOSignature);
 
-            if (tryation_ptr == IntPtr.Zero || uimo_ptr == IntPtr.Zero || useaction_ptr == IntPtr.Zero)
+            if (tryaction_ptr == IntPtr.Zero || uimo_ptr == IntPtr.Zero || useaction_ptr == IntPtr.Zero)
             {
                 PluginLog.Error("Unable to initialize game hooks");
                 return;
             }
 
-            var tryaction_offset = Dalamud.Memory.MemoryHelper.Read<int>(tryation_ptr + 1);
-            var tryaction_hook_ptr = tryation_ptr + 5 + tryaction_offset;
+            var tryaction_offset = Dalamud.Memory.MemoryHelper.Read<int>(tryaction_ptr + 1);
+            var tryaction_hook_ptr = tryaction_ptr + 5 + tryaction_offset;
 
             var useaction_offset = Dalamud.Memory.MemoryHelper.Read<int>(useaction_ptr + 1);
             var useaction_hook_ptr = useaction_ptr + 5 + useaction_offset;
@@ -89,13 +89,37 @@ namespace Redirect
             return null;
         }
 
+        private void TryQueue(IntPtr am, ActionType action_type, uint id, uint target, uint origin, uint unk)
+        {
+            Dalamud.SafeMemory.Read<uint>(am + 0x68, out var queue_full);
+            
+            if(queue_full > 0)
+            {
+                return;
+            }
+
+            PluginLog.Information("Force queueing action");
+
+            Dalamud.SafeMemory.Write<uint>(am + 0x70, id);
+            Dalamud.SafeMemory.Write<uint>(am + 0x80, origin);
+            Dalamud.SafeMemory.Write<uint>(am + 0x84, unk);
+            Dalamud.SafeMemory.Write<bool>(am + 0x68, true);
+            Dalamud.SafeMemory.Write<uint>(am + 0x6c, (uint) action_type);
+            Dalamud.SafeMemory.Write<uint>(am + 0x78, target);
+        }
+
         private unsafe bool TryActionCallback(IntPtr this_ptr, ActionType action_type, uint id, uint target, uint unk_1, uint origin, uint unk_2, ref Vector3 location)
         {
+            PluginLog.Information($"[TryAction] Type: {action_type}, {id}, {target}, {unk_1}, {origin}, {unk_2}");
+            
             if(action_type != ActionType.Spell)
             {
                 return TryActionHook.Original(this_ptr, action_type, id, target, unk_1, origin, unk_2, ref location);
             }
-            
+
+            TryQueue(this_ptr, action_type, id, target, origin, unk_2);
+            return false;
+
             var adj_id = id;
             unsafe
             {

@@ -1,6 +1,7 @@
 ﻿using Dalamud.Data;
 using Dalamud.Game.Command;
 using Dalamud.IoC;
+using Dalamud.Logging;
 using Dalamud.Plugin;
 using System;
 using System.Threading.Tasks;
@@ -25,8 +26,15 @@ namespace Redirect
         public Plugin([RequiredVersion("1.0")] DalamudPluginInterface i)
         {
             Services.Initialize(i);
+            try
+            {
+                Configuration = Interface.GetPluginConfig() as Configuration ?? new Configuration();
+            } catch(Exception e)
+            {
+                PluginLog.Error("Failed to load plugin configuration.");
+                Configuration = new Configuration();
+            }
 
-            Configuration = Interface.GetPluginConfig() as Configuration ?? new Configuration();
             PluginUi = new PluginUI(this, Configuration);
             Hooks = new GameHooks(Configuration);
 
