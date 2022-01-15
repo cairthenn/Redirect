@@ -29,7 +29,8 @@ namespace Redirect
             try
             {
                 Configuration = Interface.GetPluginConfig() as Configuration ?? new Configuration();
-            } catch(Exception e)
+            } 
+            catch(Exception)
             {
                 PluginLog.Error("Failed to load plugin configuration.");
                 Configuration = new Configuration();

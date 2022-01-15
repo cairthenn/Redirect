@@ -61,11 +61,25 @@ namespace Redirect
 
             ImGui.SetNextWindowSize(new Vector2(450, 400), ImGuiCond.FirstUseEver);
 
-            if (!ImGui.Begin(Plugin.Name, ref MainWindowVisible))
+            if (!ImGui.Begin(Plugin.Name, ref MainWindowVisible, ImGuiWindowFlags.MenuBar))
             {
                 ImGui.End();
                 return;
             }
+
+            //if(ImGui.BeginMenuBar())
+            //{
+            //    bool macro_queue = Configuration.EnableMacroQueueing;
+            //    if (ImGui.BeginMenu("##macro-queueing"))
+            //    {
+            //        if (ImGui.Checkbox("Enable Macro Queueing", ref macro_queue))
+            //        {
+            //            Configuration.EnableMacroQueueing = macro_queue;
+            //        }
+            //        ImGui.EndMenu();
+            //    }
+            //    ImGui.EndMenuBar();
+            //}
 
             if(ImGui.BeginChild("abilities", new Vector2(ImGui.GetContentRegionAvail().X * 0.25f, -1))) {
 

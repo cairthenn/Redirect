@@ -14,8 +14,6 @@ namespace Redirect
 {
     internal class GameHooks : IDisposable
     {
-        private const string TryActionSignature = "E8 ?? ?? ?? ?? EB 64 B1 01";
-        private const string UseActionSignature = "E8 ?? ?? ?? ?? 3C 01 0F 85 ?? ?? ?? ?? EB 46";
         private const string UIMOSignature = "E8 ?? ?? ?? ?? 48 8B 6C 24 58 48 8B 5C 24 50 4C 8B 7C";
 
         private PartyList PartyMembers => Services.PartyMembers;
@@ -23,8 +21,14 @@ namespace Redirect
         private TargetManager TargetManager => Services.TargetManager;
         private SigScanner SigScanner => Services.SigScanner;
 
-        private delegate bool TryAction(IntPtr tp, ActionType t, uint id, uint target, uint p4, uint p5, uint p6, ref Vector3 l);
-        private delegate bool UseAction(IntPtr tp, ActionType t, uint id, uint target, ref Vector3 l, uint p5 = 0);
+
+        // param is the same in both functions,
+        // 65535 can be observed for older food,
+        // for teleports it is aertheryte ID,
+        // generally 0
+
+        private unsafe delegate bool TryAction(IntPtr tp, ActionType t, uint id, ulong target, uint param, uint origin, uint unk, void* l);
+        private unsafe delegate bool UseAction(IntPtr tp, ActionType t, uint id, ulong target, Vector3* l, uint param = 0);
 
         private delegate void MouseoverEntity(IntPtr t, IntPtr entity);
 
@@ -40,27 +44,24 @@ namespace Redirect
         public GameHooks(Configuration config)
         {
             Configuration = config;
-            var tryaction_ptr = SigScanner.ScanModule(TryActionSignature);
-            var useaction_ptr = SigScanner.ScanModule(UseActionSignature);
+
             var uimo_ptr = SigScanner.ScanModule(UIMOSignature);
 
-            if (tryaction_ptr == IntPtr.Zero || uimo_ptr == IntPtr.Zero || useaction_ptr == IntPtr.Zero)
+            if (uimo_ptr == IntPtr.Zero)
             {
                 PluginLog.Error("Unable to initialize game hooks");
                 return;
             }
 
-            var tryaction_offset = Dalamud.Memory.MemoryHelper.Read<int>(tryaction_ptr + 1);
-            var tryaction_hook_ptr = tryaction_ptr + 5 + tryaction_offset;
-
-            var useaction_offset = Dalamud.Memory.MemoryHelper.Read<int>(useaction_ptr + 1);
-            var useaction_hook_ptr = useaction_ptr + 5 + useaction_offset;
-
             var uimo_offset = Dalamud.Memory.MemoryHelper.Read<int>(uimo_ptr + 1);
             var uimo_hook_ptr = uimo_ptr + 5 + uimo_offset;
+            
+            unsafe
+            {
+                UseActionHook = new Hook<UseAction>((IntPtr) ActionManager.fpUseActionLocation, UseActionCallback);
+                TryActionHook = new Hook<TryAction>((IntPtr) ActionManager.fpUseAction, TryActionCallback);
+            }
 
-            UseActionHook = new Hook<UseAction>(useaction_hook_ptr, UseActionCallback);
-            TryActionHook = new Hook<TryAction>(tryaction_hook_ptr, TryActionCallback);
             MouseoverHook = new Hook<MouseoverEntity>(uimo_hook_ptr, OnMouseoverEntityCallback);
 
             TryActionHook.Enable();
@@ -89,12 +90,29 @@ namespace Redirect
             return null;
         }
 
-        private unsafe bool TryActionCallback(IntPtr this_ptr, ActionType action_type, uint id, uint target, uint unk_1, uint origin, uint unk_2, ref Vector3 location)
+        private Vector3 ClampCoordinates(Vector3 origin, Vector3 dest, int range)
+        {
+            if (Vector3.Distance(origin, dest) <= range)
+            {
+                return dest;
+            }
+            
+            var o = new Vector2(origin.X, origin.Z);
+            var d = new Vector2(dest.X, dest.Z);
+            var n = Vector2.Normalize(d - o);
+            var t = o + (n * range);
+            return new Vector3(t.X, dest.Y, t.Y);
+        }
+
+
+        private unsafe bool TryActionCallback(IntPtr this_ptr, ActionType action_type, uint id, ulong target, uint param, uint origin, uint unk, void* location)
         {
             if (action_type != ActionType.Spell)
             {
-                return TryActionHook.Original(this_ptr, action_type, id, target, unk_1, origin, unk_2, ref location);
+                return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
             }
+            
+            origin = origin == 2 && Configuration.EnableMacroQueueing ? 0 : origin;
 
             var adj_id = id;
             unsafe
@@ -112,13 +130,17 @@ namespace Redirect
 
             if(place_at_cursor)
             {
+                var res = Actions.GetRow(adj_id)!;
                 var success = Services.GameGui.ScreenToWorld(ImGui.GetMousePos(), out var game_coords);
+
+                var new_location = ClampCoordinates(ClientState.LocalPlayer!.Position, game_coords, res.Range);
+
                 if (ActionManager.fpIsRecastTimerActive(ActionManager.Instance(), action_type, adj_id) > 0)
                 {
-                    return TryActionHook.Original(this_ptr, action_type, id, target, unk_1, origin, unk_2, ref location);
+                    return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
                 }
 
-                return UseActionHook.Original(this_ptr, action_type, id, target, ref game_coords);
+                return UseActionHook.Original(this_ptr, action_type, id, target, &new_location, param);
             }
 
             if (new_target != null)
@@ -129,19 +151,19 @@ namespace Redirect
                     var new_location = new_target.Position;
                     if (ActionManager.fpIsRecastTimerActive(ActionManager.Instance(), action_type, adj_id) > 0)
                     {
-                        return TryActionHook.Original(this_ptr, action_type, id, target, unk_1, origin, unk_2, ref location);
+                        return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
                     }
-                    return UseActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, ref new_location);
+                    return UseActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, &new_location);
                 } 
 
-                return TryActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, unk_1, origin, unk_2, ref location);
+                return TryActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, param, origin, unk, location);
             }
 
-            return TryActionHook.Original(this_ptr, action_type, id, target, unk_1, origin, unk_2, ref location);
+            return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
         }
-        private bool UseActionCallback(IntPtr this_ptr, ActionType action_type, uint id, uint target, ref Vector3 location, uint unk)
+        private unsafe bool UseActionCallback(IntPtr this_ptr, ActionType action_type, uint id, ulong target, Vector3* location, uint unk)
         {
-            return UseActionHook.Original(this_ptr, action_type, id, target, ref location, unk);
+            return UseActionHook.Original(this_ptr, action_type, id, target, location, unk);
         }
 
         private void OnMouseoverEntityCallback(IntPtr this_ptr, IntPtr entity)
