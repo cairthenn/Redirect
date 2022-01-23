@@ -30,6 +30,13 @@ Note that if you also have custom action targeting enabled in the configuration,
 
 Yes! While this is currently experimental, there is an option in the configuration that will let you queue sprint and potions (not food!). Please let me know if you experience issues using this feature.
 
+### Can I queue ground targeted abilities?
+
+Also yes! The same applies as above.
+
+### Why won't [x ability or item] queue?
+
+The game has multiple checks in place to determine whether actions are allowed to be queued. My method was not exhaustive, nor is it intended to be. The plugin only allows things to queue that the game can actually queue itself, but has decided not to. Some things simply cannot be queued by the game's normal systems, and this plugin does not seek to change that.
 
 ### How do I setup a UI mouseover?
 
