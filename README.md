@@ -26,18 +26,6 @@ Normally, if you try to use this macro while casting, nothing will happen. With 
 
 Note that if you also have custom action targeting enabled in the configuration, it will override your macro's intended target. However, this system allows you to completely avoid the configuration step altogether and simply play using normal ingame macros that now work as though they were action bar abilities!
 
-### Can I queue sprint and items?
-
-Yes! While this is currently experimental, there is an option in the configuration that will let you queue sprint and potions (not food!). Please let me know if you experience issues using this feature.
-
-### Can I queue ground targeted abilities?
-
-Also yes! The same applies as above.
-
-### Why won't [x ability or item] queue?
-
-The game has multiple checks in place to determine whether actions are allowed to be queued. My method was not exhaustive, nor is it intended to be. The plugin only allows things to queue that the game can actually queue itself, but has decided not to. Some things simply cannot be queued by the game's normal systems, and this plugin does not seek to change that.
-
 ### How do I setup a UI mouseover?
 
 Open the plugin configuration and select the job you are interested in setting up a mouseover for. Scroll through the action list, or use the search feature, to locate the action you wish to modify. If you cannot find the ability, it is not currently supported.

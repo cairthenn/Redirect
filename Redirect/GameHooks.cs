@@ -43,37 +43,6 @@ namespace Redirect
 
         private Configuration Configuration;
 
-        public static void UpdateQueueOptions(bool enable)
-        {
-            if (enable)
-            {
-                EnableQueueOptions();
-            }
-            else
-            {
-                DisableQueueOptions();
-            }
-        }
-
-        private static void EnableQueueOptions()
-        {
-            unsafe
-            {
-                IntPtr try_action = (IntPtr) ActionManager.fpUseAction;
-                Dalamud.SafeMemory.Write<byte>(try_action + 0x17D, 8);
-            }
-        }
-
-        private static void DisableQueueOptions()
-        {
-            unsafe
-            {
-                IntPtr try_action = (IntPtr)ActionManager.fpUseAction;
-                Dalamud.SafeMemory.Write<byte>(try_action + 0x17D, 1);
-            }
-        }
-
-
         public GameHooks(Configuration config)
         {
             Configuration = config;
@@ -96,11 +65,6 @@ namespace Redirect
             }
 
             MouseoverHook = new Hook<MouseoverEntity>(uimo_hook_ptr, OnMouseoverEntityCallback);
-
-            if(Configuration.QueueMoreActions)
-            {
-                EnableQueueOptions();
-            }
 
             TryActionHook.Enable();
             UseActionHook.Enable();
@@ -142,14 +106,6 @@ namespace Redirect
 
         private unsafe bool TryActionCallback(IntPtr this_ptr, ActionType action_type, uint id, ulong target, uint param, uint origin, uint unk, void* location)
         {   
-            // This allows sprint to queue
-            
-            if(Configuration.QueueMoreActions && action_type == ActionType.General && id == 4)
-            {
-                id = 3;
-                action_type = ActionType.Spell;
-            }
-
             // Ignore all handling if it's not a spell
 
             if (action_type != ActionType.Spell)
@@ -279,7 +235,6 @@ namespace Redirect
             UseActionHook?.Dispose();
             MouseoverHook?.Dispose();
 
-            DisableQueueOptions();
         }
     }
 }
