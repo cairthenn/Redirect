@@ -13,6 +13,10 @@ namespace Redirect
 
         public bool EnableMacroQueueing { get; set; } = false;
 
+        // public bool InstantGroundActions { get; set; } = false;
+
+        public bool QueueMoreActions { get; set; } = false;
+
         public string DefaultRedirection { get; set; } = "UI Mouseover";
 
         public Dictionary<uint, Redirection> Redirections { get; set; } = new();

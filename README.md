@@ -28,7 +28,7 @@ Note that if you also have custom action targeting enabled in the configuration,
 
 ### Can I queue sprint and items?
 
-Although it is possible, the game is actually coded to explicitly prevent this. More research is needed to implement this in a safe manner.
+Yes! While this is currently experimental, there is an option in the configuration that will let you queue sprint and potions (not food!). Please let me know if you experience issues using this feature.
 
 
 ### How do I setup a UI mouseover?

@@ -77,6 +77,22 @@ namespace Redirect
                         Configuration.EnableMacroQueueing = macro_queue;
                     }
 
+                    //bool instant_ground = Configuration.InstantGroundActions;
+                    //if (ImGui.Checkbox("Instant Ground Actions", ref instant_ground))
+                    //{
+                    //    Configuration.InstantGroundActions = instant_ground;
+                    //}
+
+                    bool queue_more = Configuration.QueueMoreActions;
+                    if (ImGui.Checkbox("Queue More Actions", ref queue_more))
+                    {
+                        if(queue_more != Configuration.QueueMoreActions)
+                        {
+                            Configuration.QueueMoreActions = queue_more;
+                            GameHooks.UpdateQueueOptions(queue_more);
+                        }
+                    }
+
                     ImGui.EndMenu();
                 }
                 ImGui.EndMenuBar();
