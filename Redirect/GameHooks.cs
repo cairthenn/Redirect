@@ -105,7 +105,13 @@ namespace Redirect
         }
 
         private unsafe bool TryActionCallback(IntPtr this_ptr, ActionType action_type, uint id, ulong target, uint param, uint origin, uint unk, void* location)
-        {   
+        {
+            if (Configuration.QueueMoreActions && action_type == ActionType.General && id == 4)
+            {
+                return UseActionHook.Original(this_ptr, ActionType.Spell, 3, target, default, param);
+            }
+
+
             // Ignore all handling if it's not a spell
 
             if (action_type != ActionType.Spell)
@@ -140,14 +146,7 @@ namespace Redirect
                     return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
                 }
 
-                uint status = ActionManager.fpGetActionStatus((ActionManager*)this_ptr, action_type, id, (uint) target, 1, 1);
-
-                if(status == 0)
-                {
-                    return UseActionHook.Original(this_ptr, action_type, id, target, &new_location, param);
-                }
-
-                return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
+                return UseActionHook.Original(this_ptr, action_type, id, target, &new_location, param);
             }
 
             if (new_target != null)
@@ -161,12 +160,7 @@ namespace Redirect
                         return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
                     }
 
-                    uint status = ActionManager.fpGetActionStatus((ActionManager*)this_ptr, action_type, id, (uint)target, 1, 1);
-
-                    if (status == 0)
-                    {
-                        return UseActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, &new_location);
-                    }
+                    return UseActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, &new_location);
                 } 
 
                 return TryActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, param, origin, unk, location);
