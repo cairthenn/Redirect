@@ -15,7 +15,7 @@ namespace Redirect
 
         // public bool InstantGroundActions { get; set; } = false;
 
-        public bool QueueMoreActions { get; set; } = false;
+        public bool QueueSprint { get; set; } = false;
 
         public string DefaultRedirection { get; set; } = "UI Mouseover";
 

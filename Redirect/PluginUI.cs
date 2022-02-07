@@ -72,9 +72,19 @@ namespace Redirect
                 if (ImGui.BeginMenu("Options"))
                 {
                     bool macro_queue = Configuration.EnableMacroQueueing;
-                    if (ImGui.Checkbox("Enable Macro Queueing", ref macro_queue))
+                    if (ImGui.Checkbox("Queue Macros", ref macro_queue))
                     {
                         Configuration.EnableMacroQueueing = macro_queue;
+                    }
+
+                    bool sprint_queue = Configuration.QueueSprint;
+                    if (ImGui.Checkbox("Queue Sprint", ref sprint_queue))
+                    {
+                        if(sprint_queue != Configuration.QueueSprint)
+                        {
+                            GameHooks.UpdateSprintQueueing(sprint_queue);
+                            Configuration.QueueSprint = sprint_queue;
+                        }
                     }
 
                     ImGui.EndMenu();

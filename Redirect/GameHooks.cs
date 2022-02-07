@@ -10,12 +10,14 @@ using Dalamud.Hooking;
 using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace Redirect
 {
     internal class GameHooks : IDisposable
     {
         private const string UIMOSignature = "E8 ?? ?? ?? ?? 48 8B 6C 24 58 48 8B 5C 24 50 4C 8B 7C";
+        private const string ActionResourceSig = "E8 ?? ?? ?? ?? 4C 8B E8 48 85 C0 0F 84 ?? ?? ?? ?? 41 83 FE 04";
 
         private PartyList PartyMembers => Services.PartyMembers;
         private ClientState ClientState => Services.ClientState;
@@ -35,11 +37,14 @@ namespace Redirect
 
         private delegate void MouseoverEntity(IntPtr t, IntPtr entity);
 
+        private unsafe delegate void* GetActionResourceDelegate(int id);
+
         private volatile GameObject CurrentUIMouseover = null!;
 
         private Hook<TryAction> TryActionHook = null!;
         private Hook<UseAction> UseActionHook = null!;
         private Hook<MouseoverEntity> MouseoverHook = null!;
+        private static GetActionResourceDelegate GetActionResource = null!;
 
         private Configuration Configuration;
 
@@ -56,7 +61,7 @@ namespace Redirect
             }
 
             var uimo_offset = Dalamud.Memory.MemoryHelper.Read<int>(uimo_ptr + 1);
-            var uimo_hook_ptr = uimo_ptr + 5 + uimo_offset;
+            var uimo_hook_ptr = uimo_ptr + 5 + uimo_offset;                   
 
             unsafe
             {
@@ -64,11 +69,41 @@ namespace Redirect
                 TryActionHook = new Hook<TryAction>((IntPtr) ActionManager.fpUseAction, TryActionCallback);
             }
 
+            UpdateSprintQueueing(Configuration.QueueSprint);
+
             MouseoverHook = new Hook<MouseoverEntity>(uimo_hook_ptr, OnMouseoverEntityCallback);
 
             TryActionHook.Enable();
             UseActionHook.Enable();
             MouseoverHook.Enable();
+        }
+
+        public static void UpdateSprintQueueing(bool enable)
+        {
+            if(GetActionResource == null)
+            {
+                var actionres_ptr = Services.SigScanner.ScanModule(ActionResourceSig);
+                var actionres_offset = Dalamud.Memory.MemoryHelper.Read<int>(actionres_ptr + 1);
+                var actionres_fn_ptr = actionres_ptr + 5 + actionres_offset;
+                GetActionResource = Marshal.GetDelegateForFunctionPointer<GetActionResourceDelegate>(actionres_fn_ptr);
+            }
+
+            if(enable)
+            {
+                unsafe
+                {
+                    var res = (IntPtr)GetActionResource(3);
+                    Dalamud.SafeMemory.Write(res + 0x20, (byte)ActionType.Ability);
+                }
+            }
+            else
+            {
+                unsafe
+                {
+                    var res = (IntPtr)GetActionResource(3);
+                    Dalamud.SafeMemory.Write(res + 0x20, (byte)ActionType.MainCommand);
+                }
+            }
         }
 
         private GameObject? RedirectTarget(uint action_id, ref bool place_at_cursor)
@@ -106,9 +141,12 @@ namespace Redirect
 
         private unsafe bool TryActionCallback(IntPtr this_ptr, ActionType action_type, uint id, ulong target, uint param, uint origin, uint unk, void* location)
         {
-            if (Configuration.QueueMoreActions && action_type == ActionType.General && id == 4)
+            
+            // Special sprint handling
+            
+            if(Configuration.QueueSprint && (action_type == ActionType.General && id == 4))
             {
-                return UseActionHook.Original(this_ptr, ActionType.Spell, 3, target, default, param);
+                return TryActionHook.Original(this_ptr, ActionType.Spell, 3, target, param, origin, unk, location);
             }
 
 
@@ -228,7 +266,7 @@ namespace Redirect
             TryActionHook?.Dispose();
             UseActionHook?.Dispose();
             MouseoverHook?.Dispose();
-
+            UpdateSprintQueueing(false);
         }
     }
 }
