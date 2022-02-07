@@ -179,7 +179,9 @@ namespace Redirect
 
                 var new_location = ClampCoordinates(ClientState.LocalPlayer!.Position, game_coords, res.Range);
 
-                if (ActionManager.fpIsRecastTimerActive(ActionManager.Instance(), action_type, adj_id) > 0)
+                var status = ActionManager.fpGetActionStatus((ActionManager*)this_ptr, action_type, id, (uint)target, 1, 1);
+
+                if (status != 0 && status != 0x244)
                 {
                     return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
                 }
@@ -193,7 +195,10 @@ namespace Redirect
                 if (res.TargetArea)
                 {
                     var new_location = new_target.Position;
-                    if (ActionManager.fpIsRecastTimerActive(ActionManager.Instance(), action_type, adj_id) > 0)
+
+                    var status = ActionManager.fpGetActionStatus((ActionManager*) this_ptr, action_type, id, (uint) target, 1, 1);
+                    
+                    if (status != 0 && status != 0x244)
                     {
                         return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
                     }
