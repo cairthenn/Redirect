@@ -10,6 +10,8 @@ The plugin enables seamless use of mouseover and focus target functionality by a
 
 This plugin has a single command, `/redirect`, that opens the configuration.
 
+In addition to the standard configuration, there is an options menu that provides some additional features, such as queueing Sprint and macros!
+
 ### About macro queueing
 
 This plugin allows you to "queue" actions using macros as you normally would be able to via the action bar. This does not bypass the game's queue system or allow you to queue multiple things at the same time. It does, however, allow you to create priority-based macros or macros that use custom targeting without worrying about clipping.
@@ -25,6 +27,10 @@ For example, you can create a Raise macro that will always try to use Swiftcast 
 Normally, if you try to use this macro while casting, nothing will happen. With macro queueing enabled, it will try to queue Swiftcast, and if it isn't available, it will try to queue Raise.
 
 Note that if you also have custom action targeting enabled in the configuration, it will override your macro's intended target. However, this system allows you to completely avoid the configuration step altogether and simply play using normal ingame macros that now work as though they were action bar abilities!
+
+### About sprint queueing
+
+Similarly, there is an option that lets the usually-unqueueable action, Sprint, queue like any other ability.
 
 ### How do I setup a UI mouseover?
 
