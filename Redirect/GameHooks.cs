@@ -80,8 +80,21 @@ namespace Redirect
             MouseoverHook.Enable();
         }
 
+        // ActionResource:
+
+        // 0x08:    IconID
+        // 0x0A:    Cast VFX
+        // 0x0C:    ActionTimeline
+        // 0x0E:    Cost
+        // 0x14:    Cast
+        // 0x16:    Recast
+        // 0x1E:    ActionTimeline
+        // 0x20:    ActionCategory
+        // 0x40:    Name
+
         public void UpdateSprintQueueing(bool enable)
         {
+
             if(enable)
             {
                 var res = GetActionResource(3);
@@ -168,13 +181,14 @@ namespace Redirect
             
             // Special sprint handling
             
-            if(Configuration.QueueSprint && (action_type == ActionType.General && id == 4))
+            if(Configuration.QueueSprint && action_type == ActionType.General && id == 4)
             {
                 return TryActionHook.Original(this_ptr, ActionType.Spell, 3, target, param, origin, unk, location);
             }
 
-
-            // Ignore all handling if it's not a spell
+            // This is NOT the same classification as the item's resource, but a more generic version
+            // Every spell, ability, and weaponskill (even sprint, which is a "main command"), gets called with
+            // the designation of "Spell" (1). Thus, we can avoid most tomfoolery by returning early
 
             if (action_type != ActionType.Spell)
             {
@@ -198,6 +212,8 @@ namespace Redirect
             bool place_at_cursor = false;
             var new_target = RedirectTarget(adj_id, ref place_at_cursor);
 
+            // Ground targeting actions at the cursor
+
             if (place_at_cursor)
             {
                 var res = Actions.GetRow(adj_id)!;
@@ -216,9 +232,14 @@ namespace Redirect
                 return true;
             }
 
+            // Successfully changed target
+
             if (new_target != null)
             {
                 var res = Actions.GetRow(adj_id)!;
+
+                // Ground placed action at specific game object
+
                 if (res.TargetArea)
                 {
                     var new_location = new_target.Position;
@@ -234,8 +255,12 @@ namespace Redirect
                     return true;
                 } 
 
+                // Normal action with changed target
+
                 return TryActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, param, origin, unk, location);
             }
+
+            // Use the action normally
 
             return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
         }
