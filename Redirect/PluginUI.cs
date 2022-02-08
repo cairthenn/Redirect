@@ -14,6 +14,7 @@ namespace Redirect
         const uint MAX_REDIRECTS = 10;
         private Plugin Plugin { get; } = null!;
         private Configuration Configuration { get; } = null!;
+        private GameHooks GameHooks { get; } = null!;
         private List<Lumina.Excel.GeneratedSheets.ClassJob> Jobs { get; } = null!;
         private Dictionary<ushort, TextureWrap> Icons { get; } = new();
 
@@ -24,10 +25,11 @@ namespace Redirect
         internal bool MainWindowVisible;
 
 
-        public PluginUI(Plugin plugin, Configuration config)
+        public PluginUI(Plugin plugin, Configuration config, GameHooks hooks)
         {
             Plugin = plugin;
             Configuration = config;
+            GameHooks = hooks;
 
            Plugin.Interface.UiBuilder.Draw += Draw;
            Plugin.Interface.UiBuilder.OpenConfigUi += OnOpenConfig;
@@ -71,6 +73,12 @@ namespace Redirect
             {
                 if (ImGui.BeginMenu("Options"))
                 {
+                    bool queue_ground = Configuration.QueueGroundActions;
+                    if (ImGui.Checkbox("Queue Ground Actions", ref queue_ground))
+                    {
+                        Configuration.QueueGroundActions = queue_ground;
+                    }
+
                     bool macro_queue = Configuration.EnableMacroQueueing;
                     if (ImGui.Checkbox("Queue Macros", ref macro_queue))
                     {
