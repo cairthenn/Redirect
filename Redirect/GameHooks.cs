@@ -176,6 +176,27 @@ namespace Redirect
             }
         }
 
+        private void TryQueueAction(IntPtr action_manager, uint id, uint param, ActionType action_type, ulong target_id)
+        {
+            Dalamud.SafeMemory.Read(action_manager + 0x68, out int queue_full);
+
+            if(queue_full > 0)
+            {
+                return;
+            }
+
+            // This is how the game queues actions within the "TryAction" function
+            // There is no separate function for it, it simply updates variables
+            // within the ActionManager during the call
+
+            Dalamud.SafeMemory.Write(action_manager + 0x68, 1);
+            Dalamud.SafeMemory.Write(action_manager + 0x6C, (byte) action_type);
+            Dalamud.SafeMemory.Write(action_manager + 0x70, id);
+            Dalamud.SafeMemory.Write(action_manager + 0x78, target_id);
+            Dalamud.SafeMemory.Write(action_manager + 0x80, 0); // "Origin", for whatever reason
+            Dalamud.SafeMemory.Write(action_manager + 0x84, param);
+        }
+
         private unsafe bool TryActionCallback(IntPtr this_ptr, ActionType action_type, uint id, ulong target, uint param, uint origin, uint unk, void* location)
         {
             
@@ -216,17 +237,30 @@ namespace Redirect
 
             if (place_at_cursor)
             {
-                var res = Actions.GetRow(adj_id)!;
-                var success = Services.GameGui.ScreenToWorld(ImGui.GetMousePos(), out var game_coords);
-
-                var new_location = ClampCoordinates(ClientState.LocalPlayer!.Position, game_coords, res.Range);
-
                 var status = ActionManager.fpGetActionStatus((ActionManager*) this_ptr, action_type, id, (uint) target, 1, 1);
 
                 if (status != 0 && status != 0x244)
                 {
                     return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
                 }
+
+                Dalamud.SafeMemory.Read(this_ptr + 0x08, out float animation_timer);
+
+                if(status == 0x244 || animation_timer > 0)
+                {
+                    if(!Configuration.QueueGroundActions)
+                    {
+                        return false;
+                    }
+
+                    TryQueueAction(this_ptr, id, param, action_type, target);
+                    return true;
+                }
+
+                var res = Actions.GetRow(adj_id)!;
+                var success = Services.GameGui.ScreenToWorld(ImGui.GetMousePos(), out var game_coords);
+
+                var new_location = ClampCoordinates(ClientState.LocalPlayer!.Position, game_coords, res.Range);
 
                 UseAction(this_ptr, action_type, id, target, &new_location, param);
                 return true;
@@ -240,24 +274,36 @@ namespace Redirect
 
                 // Ground placed action at specific game object
 
-                if (res.TargetArea)
+                if (!res.TargetArea)
                 {
-                    var new_location = new_target.Position;
+                    // Normal action with changed target
 
-                    var status = ActionManager.fpGetActionStatus((ActionManager*) this_ptr, action_type, id, (uint) target, 1, 1);
-                    
-                    if (status != 0 && status != 0x244)
+                    return TryActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, param, origin, unk, location);
+                }
+
+                var status = ActionManager.fpGetActionStatus((ActionManager*)this_ptr, action_type, id, (uint)target, 1, 1);
+
+                if (status != 0 && status != 0x244)
+                {
+                    return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
+                }
+
+                Dalamud.SafeMemory.Read(this_ptr + 0x08, out float animation_timer);
+
+                if (status == 0x244 || animation_timer > 0)
+                {
+                    if (!Configuration.QueueGroundActions)
                     {
-                        return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
+                        return false;
                     }
 
-                    UseAction(this_ptr, action_type, id, new_target.ObjectId, &new_location);
+                    TryQueueAction(this_ptr, id, param, action_type, target);
                     return true;
-                } 
+                }
 
-                // Normal action with changed target
-
-                return TryActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, param, origin, unk, location);
+                var new_location = new_target.Position;
+                UseAction(this_ptr, action_type, id, new_target.ObjectId, &new_location);
+                return true;
             }
 
             // Use the action normally

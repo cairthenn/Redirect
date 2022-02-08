@@ -73,6 +73,12 @@ namespace Redirect
             {
                 if (ImGui.BeginMenu("Options"))
                 {
+                    bool queue_ground = Configuration.QueueGroundActions;
+                    if (ImGui.Checkbox("Queue Ground Actions", ref queue_ground))
+                    {
+                        Configuration.QueueGroundActions = queue_ground;
+                    }
+
                     bool macro_queue = Configuration.EnableMacroQueueing;
                     if (ImGui.Checkbox("Queue Macros", ref macro_queue))
                     {
