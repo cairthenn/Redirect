@@ -37,7 +37,7 @@ namespace Redirect
 
         private delegate void MouseoverEntity(IntPtr t, IntPtr entity);
 
-        private unsafe delegate void* GetActionResourceDelegate(int id);
+        private delegate IntPtr GetActionResourceDelegate(int id);
 
         private volatile GameObject CurrentUIMouseover = null!;
 
@@ -90,19 +90,13 @@ namespace Redirect
 
             if(enable)
             {
-                unsafe
-                {
-                    var res = (IntPtr)GetActionResource(3);
-                    Dalamud.SafeMemory.Write(res + 0x20, (byte)ActionType.Ability);
-                }
+                var res = GetActionResource(3);
+                Dalamud.SafeMemory.Write(res + 0x20, (byte) ActionType.Ability);
             }
             else
             {
-                unsafe
-                {
-                    var res = (IntPtr)GetActionResource(3);
-                    Dalamud.SafeMemory.Write(res + 0x20, (byte)ActionType.MainCommand);
-                }
+                var res = GetActionResource(3);
+                Dalamud.SafeMemory.Write(res + 0x20, (byte) ActionType.MainCommand);
             }
         }
 
@@ -139,6 +133,42 @@ namespace Redirect
             return new Vector3(t.X, dest.Y, t.Y);
         }
 
+        public GameObject? ResolveTarget(string target, ref bool place_at_cursor)
+        {
+            switch (target)
+            {
+                case "Cursor":
+                    place_at_cursor = true;
+                    return null;
+                case "UI Mouseover":
+                    return CurrentUIMouseover;
+                case "Model Mouseover":
+                    return TargetManager.MouseOverTarget;
+                case "Self":
+                    return ClientState.LocalPlayer;
+                case "Target":
+                    return TargetManager.Target;
+                case "Focus":
+                    return TargetManager.FocusTarget;
+                case "<2>":
+                    return PartyMembers.Length > 1 ? PartyMembers[1]!.GameObject : null;
+                case "<3>":
+                    return PartyMembers.Length > 2 ? PartyMembers[2]!.GameObject : null;
+                case "<4>":
+                    return PartyMembers.Length > 3 ? PartyMembers[3]!.GameObject : null;
+                case "<5>":
+                    return PartyMembers.Length > 4 ? PartyMembers[4]!.GameObject : null;
+                case "<6>":
+                    return PartyMembers.Length > 5 ? PartyMembers[5]!.GameObject : null;
+                case "<7>":
+                    return PartyMembers.Length > 6 ? PartyMembers[6]!.GameObject : null;
+                case "<8>":
+                    return PartyMembers.Length > 7 ? PartyMembers[7]!.GameObject : null;
+                default:
+                    return null;
+            }
+        }
+
         private unsafe bool TryActionCallback(IntPtr this_ptr, ActionType action_type, uint id, ulong target, uint param, uint origin, uint unk, void* location)
         {
             
@@ -161,6 +191,8 @@ namespace Redirect
             
             origin = origin == 2 && Configuration.EnableMacroQueueing ? 0 : origin;
 
+            // Actions placed on bars try to use their base action, so we need to get the upgraded version
+
             var adj_id = id;
             var temp_id = ActionManager.fpGetAdjustedActionId(ActionManager.Instance(), id);
             var temp_res = Actions.GetRow(temp_id);
@@ -179,7 +211,7 @@ namespace Redirect
 
                 var new_location = ClampCoordinates(ClientState.LocalPlayer!.Position, game_coords, res.Range);
 
-                var status = ActionManager.fpGetActionStatus((ActionManager*)this_ptr, action_type, id, (uint)target, 1, 1);
+                var status = ActionManager.fpGetActionStatus((ActionManager*) this_ptr, action_type, id, (uint) target, 1, 1);
 
                 if (status != 0 && status != 0x244)
                 {
@@ -211,6 +243,7 @@ namespace Redirect
 
             return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
         }
+
         private unsafe bool UseActionCallback(IntPtr this_ptr, ActionType action_type, uint id, ulong target, Vector3* location, uint unk)
         {
             return UseActionHook.Original(this_ptr, action_type, id, target, location, unk);
@@ -227,42 +260,6 @@ namespace Redirect
             else
             {
                 CurrentUIMouseover = Services.ObjectTable.CreateObjectReference(entity)!;
-            }
-        }
-
-        public GameObject? ResolveTarget(string target, ref bool place_at_cursor)
-        {
-            switch(target)
-            {
-                case "Cursor":
-                    place_at_cursor = true;
-                    return null;
-                case "UI Mouseover":
-                    return CurrentUIMouseover;
-                case "Model Mouseover":
-                    return TargetManager.MouseOverTarget;
-                case "Self":
-                    return ClientState.LocalPlayer;
-                case "Target":
-                    return TargetManager.Target;
-                case "Focus":
-                    return TargetManager.FocusTarget;
-                case "<2>":
-                    return PartyMembers.Length > 1 ? PartyMembers[1]!.GameObject : null;
-                case "<3>":
-                    return PartyMembers.Length > 2 ? PartyMembers[2]!.GameObject : null;
-                case "<4>":
-                    return PartyMembers.Length > 3 ? PartyMembers[3]!.GameObject : null;
-                case "<5>":
-                    return PartyMembers.Length > 4 ? PartyMembers[4]!.GameObject : null;
-                case "<6>":
-                    return PartyMembers.Length > 5 ? PartyMembers[5]!.GameObject : null;
-                case "<7>":
-                    return PartyMembers.Length > 6 ? PartyMembers[6]!.GameObject : null;
-                case "<8>":
-                    return PartyMembers.Length > 7 ? PartyMembers[7]!.GameObject : null;
-                default:
-                    return null;
             }
         }
 
