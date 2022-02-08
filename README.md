@@ -8,7 +8,7 @@ The plugin enables seamless use of mouseover and focus target functionality by a
 
 ### How do I install it?
 
-The easiest way is to follow the instructions at my [custom plugin repository](htts://github.com/cairthenn/CairDalamudPlugins), which also lets you see when updates are released. You are also free to compile the plugin yourself and install it that way.
+The easiest way is to follow the instructions at my [custom plugin repository](https://github.com/cairthenn/CairDalamudPlugins), which also lets you see when updates are released. You are also free to compile the plugin yourself and install it that way.
 
 ### Commands
 
