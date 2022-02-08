@@ -6,6 +6,10 @@ The plugin enables seamless use of mouseover and focus target functionality by a
 
 ![Redirect preview](https://github.com/cairthenn/Redirect/blob/main/preview.png?raw=true)
 
+### How do I install it?
+
+The easiest way is to follow the instructions at my [custom plugin repository](htts://github.com/cairthenn/CairDalamudPlugins), which also lets you see when updates are released. You are also free to compile the plugin yourself and install it that way.
+
 ### Commands
 
 This plugin has a single command, `/redirect`, that opens the configuration.
