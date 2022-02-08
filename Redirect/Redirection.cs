@@ -2,11 +2,9 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace Redirect
-{
+namespace Redirect { 
     [Serializable]
-    public class Redirection
-    {
+    public class Redirection {
         public uint ID { get; init; }
         public List<string> Priority { get; set; } = new();
 

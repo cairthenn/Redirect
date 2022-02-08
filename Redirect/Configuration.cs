@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using Dalamud.Configuration;
 
-namespace Redirect
-{
+namespace Redirect {
+
     [Serializable]
-    public class Configuration : IPluginConfiguration
-    {
+    public class Configuration : IPluginConfiguration {
         public int Version { get; set; } = 1;
         public bool DisplayPVP { get; set; } = false;
         public bool EnableMacroQueueing { get; set; } = false;
@@ -15,8 +14,7 @@ namespace Redirect
         public string DefaultRedirection { get; set; } = "UI Mouseover";
         public Dictionary<uint, Redirection> Redirections { get; set; } = new();
 
-        public void Save()
-        {
+        public void Save() {
             Services.Interface.SavePluginConfig(this);
         }
     }

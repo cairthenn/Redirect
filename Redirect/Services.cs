@@ -8,10 +8,8 @@ using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Game.Gui;
 
-namespace Redirect
-{
-    public class Services
-    {
+namespace Redirect { 
+    public class Services {
         [PluginService]
         public static DalamudPluginInterface Interface { get; private set; } = null!;
 
@@ -39,8 +37,7 @@ namespace Redirect
         [PluginService]
         public static GameGui GameGui { get; private set; } = null!;
 
-        public static void Initialize(DalamudPluginInterface i)
-        {
+        public static void Initialize(DalamudPluginInterface i) {
             i.Create<Services>();
         }
     }

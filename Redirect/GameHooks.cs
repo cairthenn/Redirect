@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Numerics;
-using ImGuiNET;
+using System.Runtime.InteropServices;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.ClientState.Objects;
@@ -8,26 +8,20 @@ using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.ClientState.Party;
 using Dalamud.Hooking;
 using Dalamud.Logging;
+using ImGuiNET;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
 
-namespace Redirect
-{
-    internal class GameHooks : IDisposable
-    {
+namespace Redirect { 
+    internal class GameHooks : IDisposable {
 
         private const string UIMOSignature = "E8 ?? ?? ?? ?? 48 8B 6C 24 58 48 8B 5C 24 50 4C 8B 7C";
         private const string ActionResourceSig = "E8 ?? ?? ?? ?? 4C 8B E8 48 85 C0 0F 84 ?? ?? ?? ?? 41 83 FE 04";
 
         private Configuration Configuration;
-
         private PartyList PartyMembers => Services.PartyMembers;
         private ClientState ClientState => Services.ClientState;
         private TargetManager TargetManager => Services.TargetManager;
         private SigScanner SigScanner => Services.SigScanner;
-
-        private HashSet<int> Seen = new HashSet<int>();
 
         // param is the same in both functions,
         // 65535 can be observed for older food,
@@ -39,7 +33,6 @@ namespace Redirect
         private delegate IntPtr GetActionResourceDelegate(int id);
         private delegate void MouseoverEntityDelegate(IntPtr t, IntPtr entity);
 
-
         private Hook<TryActionDelegate> TryActionHook = null!;
         private Hook<MouseoverEntityDelegate> MouseoverHook = null!;
         private UseActionDelegate UseAction = null!;
@@ -47,15 +40,13 @@ namespace Redirect
 
         private volatile GameObject CurrentUIMouseover = null!;
 
-        public GameHooks(Configuration config)
-        {
+        public GameHooks(Configuration config) {
             Configuration = config;
 
             var uimo_ptr = SigScanner.ScanModule(UIMOSignature);
             var actionres_ptr = Services.SigScanner.ScanModule(ActionResourceSig);
 
-            if (uimo_ptr == IntPtr.Zero || actionres_ptr == IntPtr.Zero)
-            {
+            if (uimo_ptr == IntPtr.Zero || actionres_ptr == IntPtr.Zero) {
                 PluginLog.Error("Error during game hook initialization, plugin functionality is disabled.");
                 return;
             }
@@ -68,8 +59,7 @@ namespace Redirect
             var uimo_hook_ptr = uimo_ptr + 5 + uimo_offset;
             MouseoverHook = new Hook<MouseoverEntityDelegate>(uimo_hook_ptr, OnMouseoverEntityCallback);
 
-            unsafe
-            {
+            unsafe {
                 TryActionHook = new Hook<TryActionDelegate>((IntPtr) ActionManager.fpUseAction, TryActionCallback);
                 UseAction = Marshal.GetDelegateForFunctionPointer<UseActionDelegate>((IntPtr) ActionManager.fpUseActionLocation);
             }
@@ -92,33 +82,47 @@ namespace Redirect
         // 0x20:    ActionCategory
         // 0x40:    Name
 
-        public void UpdateSprintQueueing(bool enable)
-        {
+        public void UpdateSprintQueueing(bool enable) {
 
-            if(enable)
-            {
+            if(enable) {
                 var res = GetActionResource(3);
                 Dalamud.SafeMemory.Write(res + 0x20, (byte) ActionType.Ability);
             }
-            else
-            {
+            else {
                 var res = GetActionResource(3);
                 Dalamud.SafeMemory.Write(res + 0x20, (byte) ActionType.MainCommand);
             }
         }
 
-        private GameObject? RedirectTarget(uint action_id, ref bool place_at_cursor)
-        {
-            if (!Configuration.Redirections.ContainsKey(action_id))
-            {
+        private bool TryQueueAction(IntPtr action_manager, uint id, uint param, ActionType action_type, ulong target_id) {
+            Dalamud.SafeMemory.Read(action_manager + 0x68, out int queue_full);
+
+            if (queue_full > 0) {
+                return false;
+            }
+
+            // This is how the game queues actions within the "TryAction" function
+            // There is no separate function for it, it simply updates variables
+            // within the ActionManager during the call
+
+            Dalamud.SafeMemory.Write(action_manager + 0x68, 1);
+            Dalamud.SafeMemory.Write(action_manager + 0x6C, (byte)action_type);
+            Dalamud.SafeMemory.Write(action_manager + 0x70, id);
+            Dalamud.SafeMemory.Write(action_manager + 0x78, target_id);
+            Dalamud.SafeMemory.Write(action_manager + 0x80, 0); // "Origin", for whatever reason
+            Dalamud.SafeMemory.Write(action_manager + 0x84, param);
+            return true;
+        }
+
+
+        private GameObject? RedirectTarget(uint action_id, ref bool place_at_cursor) {
+            if (!Configuration.Redirections.ContainsKey(action_id)) {
                 return null;
             }
 
-            foreach (var t in Configuration.Redirections[action_id].Priority)
-            {
+            foreach (var t in Configuration.Redirections[action_id].Priority) {
                 var nt = ResolveTarget(t, ref place_at_cursor);
-                if (nt != null)
-                {
+                if (nt != null) {
                     return nt;
                 }
             };
@@ -126,10 +130,8 @@ namespace Redirect
             return null;
         }
 
-        private Vector3 ClampCoordinates(Vector3 origin, Vector3 dest, int range)
-        {
-            if (Vector3.Distance(origin, dest) <= range)
-            {
+        private Vector3 ClampCoordinates(Vector3 origin, Vector3 dest, int range) {
+            if (Vector3.Distance(origin, dest) <= range) {
                 return dest;
             }
             
@@ -140,10 +142,8 @@ namespace Redirect
             return new Vector3(t.X, dest.Y, t.Y);
         }
 
-        public GameObject? ResolveTarget(string target, ref bool place_at_cursor)
-        {
-            switch (target)
-            {
+        public GameObject? ResolveTarget(string target, ref bool place_at_cursor) {
+            switch (target) {
                 case "Cursor":
                     place_at_cursor = true;
                     return null;
@@ -176,34 +176,10 @@ namespace Redirect
             }
         }
 
-        private void TryQueueAction(IntPtr action_manager, uint id, uint param, ActionType action_type, ulong target_id)
-        {
-            Dalamud.SafeMemory.Read(action_manager + 0x68, out int queue_full);
-
-            if(queue_full > 0)
-            {
-                return;
-            }
-
-            // This is how the game queues actions within the "TryAction" function
-            // There is no separate function for it, it simply updates variables
-            // within the ActionManager during the call
-
-            Dalamud.SafeMemory.Write(action_manager + 0x68, 1);
-            Dalamud.SafeMemory.Write(action_manager + 0x6C, (byte) action_type);
-            Dalamud.SafeMemory.Write(action_manager + 0x70, id);
-            Dalamud.SafeMemory.Write(action_manager + 0x78, target_id);
-            Dalamud.SafeMemory.Write(action_manager + 0x80, 0); // "Origin", for whatever reason
-            Dalamud.SafeMemory.Write(action_manager + 0x84, param);
-        }
-
-        private unsafe bool TryActionCallback(IntPtr this_ptr, ActionType action_type, uint id, ulong target, uint param, uint origin, uint unk, void* location)
-        {
-            
+        private unsafe bool TryActionCallback(IntPtr this_ptr, ActionType action_type, uint id, ulong target, uint param, uint origin, uint unk, void* location) {
             // Special sprint handling
             
-            if(Configuration.QueueSprint && action_type == ActionType.General && id == 4)
-            {
+            if(Configuration.QueueSprint && action_type == ActionType.General && id == 4) {
                 return TryActionHook.Original(this_ptr, ActionType.Spell, 3, target, param, origin, unk, location);
             }
 
@@ -211,8 +187,7 @@ namespace Redirect
             // Every spell, ability, and weaponskill (even sprint, which is a "main command"), gets called with
             // the designation of "Spell" (1). Thus, we can avoid most tomfoolery by returning early
 
-            if (action_type != ActionType.Spell)
-            {
+            if (action_type != ActionType.Spell) {
                 return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
             }
 
@@ -223,10 +198,10 @@ namespace Redirect
             // Actions placed on bars try to use their base action, so we need to get the upgraded version
 
             var adj_id = id;
-            var temp_id = ActionManager.fpGetAdjustedActionId(ActionManager.Instance(), id);
+            var temp_id = ActionManager.fpGetAdjustedActionId((ActionManager*) this_ptr, id);
             var temp_res = Actions.GetRow(temp_id);
-            if(temp_res != null && temp_res.IsPlayerAction)
-            {
+            
+            if(temp_res != null && temp_res.IsPlayerAction) {
                 adj_id = temp_id;
             }
 
@@ -235,75 +210,60 @@ namespace Redirect
 
             // Ground targeting actions at the cursor
 
-            if (place_at_cursor)
-            {
+            if (place_at_cursor) {
                 var status = ActionManager.fpGetActionStatus((ActionManager*) this_ptr, action_type, id, (uint) target, 1, 1);
 
-                if (status != 0 && status != 0x244)
-                {
+                if (status != 0 && status != 0x244) {
                     return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
                 }
 
                 Dalamud.SafeMemory.Read(this_ptr + 0x08, out float animation_timer);
 
-                if(status == 0x244 || animation_timer > 0)
-                {
-                    if(!Configuration.QueueGroundActions)
-                    {
+                if(status == 0x244 || animation_timer > 0) {
+                    if(!Configuration.QueueGroundActions) {
                         return false;
                     }
 
-                    TryQueueAction(this_ptr, id, param, action_type, target);
-                    return true;
+                    return TryQueueAction(this_ptr, id, param, action_type, target);
                 }
 
                 var res = Actions.GetRow(adj_id)!;
                 var success = Services.GameGui.ScreenToWorld(ImGui.GetMousePos(), out var game_coords);
-
                 var new_location = ClampCoordinates(ClientState.LocalPlayer!.Position, game_coords, res.Range);
-
-                UseAction(this_ptr, action_type, id, target, &new_location, param);
-                return true;
+                
+                return UseAction(this_ptr, action_type, id, target, &new_location, param);
             }
 
             // Successfully changed target
 
-            if (new_target != null)
-            {
+            if (new_target != null) {
                 var res = Actions.GetRow(adj_id)!;
 
-                // Ground placed action at specific game object
-
-                if (!res.TargetArea)
-                {
-                    // Normal action with changed target
-
+                if (!res.TargetArea) {
                     return TryActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, param, origin, unk, location);
                 }
 
-                var status = ActionManager.fpGetActionStatus((ActionManager*)this_ptr, action_type, id, (uint)target, 1, 1);
+                // Ground placed action at specific game object
 
-                if (status != 0 && status != 0x244)
-                {
+                var status = ActionManager.fpGetActionStatus((ActionManager*) this_ptr, action_type, id, (uint) target, 1, 1);
+
+                if (status != 0 && status != 0x244) {
                     return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
                 }
 
                 Dalamud.SafeMemory.Read(this_ptr + 0x08, out float animation_timer);
 
-                if (status == 0x244 || animation_timer > 0)
-                {
-                    if (!Configuration.QueueGroundActions)
-                    {
+                if (status == 0x244 || animation_timer > 0) {
+                    if (!Configuration.QueueGroundActions) {
                         return false;
                     }
 
-                    TryQueueAction(this_ptr, id, param, action_type, target);
-                    return true;
+                    return TryQueueAction(this_ptr, id, param, action_type, target);
                 }
 
                 var new_location = new_target.Position;
-                UseAction(this_ptr, action_type, id, new_target.ObjectId, &new_location);
-                return true;
+                
+                return UseAction(this_ptr, action_type, id, new_target.ObjectId, &new_location);
             }
 
             // Use the action normally
@@ -311,22 +271,18 @@ namespace Redirect
             return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
         }
 
-        private void OnMouseoverEntityCallback(IntPtr this_ptr, IntPtr entity)
-        {
+        private void OnMouseoverEntityCallback(IntPtr this_ptr, IntPtr entity) {
             MouseoverHook.Original(this_ptr, entity);
 
-            if (entity == IntPtr.Zero)
-            {
+            if (entity == IntPtr.Zero) {
                 CurrentUIMouseover = null!;
             } 
-            else
-            {
+            else {
                 CurrentUIMouseover = Services.ObjectTable.CreateObjectReference(entity)!;
             }
         }
 
-        public void Dispose()
-        {
+        public void Dispose() {
             TryActionHook?.Dispose();
             MouseoverHook?.Dispose();
             UpdateSprintQueueing(false);

@@ -6,27 +6,24 @@ using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Interface;
 
-namespace Redirect
-{
-    class PluginUI : IDisposable
-    {
+namespace Redirect {
+    class PluginUI : IDisposable {
+        
         const uint ICON_SIZE = 32;
         const uint MAX_REDIRECTS = 10;
+
         private Plugin Plugin { get; } = null!;
         private Configuration Configuration { get; } = null!;
         private GameHooks GameHooks { get; } = null!;
         private List<Lumina.Excel.GeneratedSheets.ClassJob> Jobs { get; } = null!;
         private Dictionary<ushort, TextureWrap> Icons { get; } = new();
 
-        private Lumina.Excel.GeneratedSheets.ClassJob SelectedJob = null!;
+        internal bool MainWindowVisible = false;
         private bool SelectedRoleActions = false;
+        private Lumina.Excel.GeneratedSheets.ClassJob SelectedJob = null!;
         private string search = string.Empty;
 
-        internal bool MainWindowVisible;
-
-
-        public PluginUI(Plugin plugin, Configuration config, GameHooks hooks)
-        {
+        public PluginUI(Plugin plugin, Configuration config, GameHooks hooks) {
             Plugin = plugin;
             Configuration = config;
             GameHooks = hooks;
@@ -39,57 +36,45 @@ namespace Redirect
 
         }
 
-        private void OnOpenConfig()
-        {
+        private void OnOpenConfig() {
             MainWindowVisible = true;
         }
 
-        public void Dispose()
-        {
+        public void Dispose() {
             Plugin.Interface.UiBuilder.OpenConfigUi -= OnOpenConfig;
             Plugin.Interface.UiBuilder.Draw -= Draw;
-            foreach(var icon in Icons.Values)
-            {
+            foreach(var icon in Icons.Values) {
                 icon.Dispose();
             }
         }
 
-        public void Draw()
-        {
-            if (!MainWindowVisible)
-            {
+        public void Draw() {
+            if (!MainWindowVisible) {
                 return;
             }
 
             ImGui.SetNextWindowSize(new Vector2(450, 400), ImGuiCond.FirstUseEver);
 
-            if (!ImGui.Begin(Plugin.Name, ref MainWindowVisible, ImGuiWindowFlags.MenuBar))
-            {
+            if (!ImGui.Begin(Plugin.Name, ref MainWindowVisible, ImGuiWindowFlags.MenuBar)) {
                 ImGui.End();
                 return;
             }
 
-            if (ImGui.BeginMenuBar())
-            {
-                if (ImGui.BeginMenu("Options"))
-                {
+            if (ImGui.BeginMenuBar()) {
+                if (ImGui.BeginMenu("Options")) {
                     bool queue_ground = Configuration.QueueGroundActions;
-                    if (ImGui.Checkbox("Queue Ground Actions", ref queue_ground))
-                    {
+                    if (ImGui.Checkbox("Queue Ground Actions", ref queue_ground)) {
                         Configuration.QueueGroundActions = queue_ground;
                     }
 
                     bool macro_queue = Configuration.EnableMacroQueueing;
-                    if (ImGui.Checkbox("Queue Macros", ref macro_queue))
-                    {
+                    if (ImGui.Checkbox("Queue Macros", ref macro_queue)) {
                         Configuration.EnableMacroQueueing = macro_queue;
                     }
 
                     bool sprint_queue = Configuration.QueueSprint;
-                    if (ImGui.Checkbox("Queue Sprint", ref sprint_queue))
-                    {
-                        if(sprint_queue != Configuration.QueueSprint)
-                        {
+                    if (ImGui.Checkbox("Queue Sprint", ref sprint_queue)) {
+                        if(sprint_queue != Configuration.QueueSprint) {
                             GameHooks.UpdateSprintQueueing(sprint_queue);
                             Configuration.QueueSprint = sprint_queue;
                         }
@@ -101,21 +86,16 @@ namespace Redirect
             }
 
             if (ImGui.BeginChild("abilities", new Vector2(ImGui.GetContentRegionAvail().X * 0.25f, -1))) {
-
-      
-                if (ImGui.TreeNodeEx("Jobs", ImGuiTreeNodeFlags.DefaultOpen))
-                {
+                
+                if (ImGui.TreeNodeEx("Jobs", ImGuiTreeNodeFlags.DefaultOpen)) {
                     
-                    if (ImGui.Selectable("Role Actions", SelectedRoleActions))
-                    {
+                    if (ImGui.Selectable("Role Actions", SelectedRoleActions)) {
                         SelectedRoleActions = true;
                         SelectedJob = null!;
                     }
 
-                    foreach (var job in Jobs)
-                    {
-                        if (ImGui.Selectable(job.Abbreviation, SelectedJob == job))
-                        {
+                    foreach (var job in Jobs) { 
+                        if (ImGui.Selectable(job.Abbreviation, SelectedJob == job)) {
                             SelectedJob = job;
                             SelectedRoleActions = false;
                         }
@@ -129,8 +109,7 @@ namespace Redirect
 
             ImGui.SameLine();
 
-            if(ImGui.BeginChild("ability-view", new Vector2(-1, -1)))
-            {
+            if(ImGui.BeginChild("ability-view", new Vector2(-1, -1))) {
                 DrawActions();
                 ImGui.EndChild();
             }
@@ -138,12 +117,10 @@ namespace Redirect
             ImGui.End();
         }
 
-        private TextureWrap? FetchTexture(ushort id)
-        {
+        private TextureWrap? FetchTexture(ushort id) {
             Icons.TryGetValue(id, out TextureWrap? texture);
             
-            if(texture is null && id > 0)
-            {
+            if(texture is null && id > 0) {
                 texture = Plugin.DataManager.GetImGuiTextureIcon(id);
                 if(texture is not null) { 
                     Icons[id] = texture;
@@ -153,38 +130,32 @@ namespace Redirect
             return texture;
         }
 
-        private void DrawIcon(ushort id, Vector2 size = default)
-        {
+        private void DrawIcon(ushort id, Vector2 size = default) {
             var texture = FetchTexture(id);
 
-            if(texture is null)
-            {
+            if(texture is null) {
                 return;
             }
             var drawsize = size == default ? new Vector2(texture.Width, texture.Height) : size;
             ImGui.Image(texture.ImGuiHandle, drawsize);
         }
 
-        private void DrawActions()
-        {
+        private void DrawActions() {
             bool save = false;
             ImGui.InputTextWithHint("##search", "Search", ref search, 100);
             ImGui.SameLine();
 
             var show_pvp = Configuration.DisplayPVP;
-            if (ImGui.Checkbox("Show PVP Actions", ref show_pvp))
-            {
+            if (ImGui.Checkbox("Show PVP Actions", ref show_pvp)) {
                 Configuration.DisplayPVP = show_pvp;
                 Configuration.Save();
             }
 
-            if (!SelectedRoleActions && SelectedJob is null)
-            {
+            if (!SelectedRoleActions && SelectedJob is null) {
                 return;
             }
 
-            if (ImGui.BeginTable("actions", 4, ImGuiTableFlags.BordersInnerH))
-            {
+            if (ImGui.BeginTable("actions", 4, ImGuiTableFlags.BordersInnerH)) {
                 ImGui.TableSetupColumn("##icon", ImGuiTableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Action", ImGuiTableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("##plus-icons", ImGuiTableColumnFlags.WidthFixed);
@@ -194,16 +165,13 @@ namespace Redirect
 
                 var actions = SelectedRoleActions ? Actions.GetRoleActions() : Actions.GetJobActions(SelectedJob);
 
-                var filtered = actions.Where(x =>
-                {
+                var filtered = actions.Where(x => {
 
-                    if (search.Length > 0 && !x.Name.ToString().ToLower().Contains(search.ToLower()))
-                    {
+                    if (search.Length > 0 && !x.Name.ToString().ToLower().Contains(search.ToLower())) {
                         return false;
                     }
 
-                    if (!Configuration.DisplayPVP && x.IsPvP)
-                    {
+                    if (!Configuration.DisplayPVP && x.IsPvP) {
                         return false;
                     }
 
@@ -211,8 +179,7 @@ namespace Redirect
                 });
  
 
-                foreach(var action in filtered)
-                {
+                foreach(var action in filtered) {
                     
                     var dims = new Vector2(ICON_SIZE);
 
@@ -240,10 +207,8 @@ namespace Redirect
 
                     // TODO: Disable the button? Why isn't this possible
 
-                    if (ImGui.Button($"{FontAwesomeIcon.PlusCircle.ToIconString()}##-{action.RowId}"))
-                    {
-                        if(redirection.Count < MAX_REDIRECTS)
-                        {
+                    if (ImGui.Button($"{FontAwesomeIcon.PlusCircle.ToIconString()}##-{action.RowId}")) {
+                        if(redirection.Count < MAX_REDIRECTS) {
                             redirection.Priority.Add(Configuration.DefaultRedirection);
                             save = true;
                         }
@@ -255,71 +220,60 @@ namespace Redirect
 
                     var remove = -1;
 
-                    for (var i = 0; i < redirection.Count; i++)
-                    {
+                    for (var i = 0; i < redirection.Count; i++) {
+                        
                         ImGui.Dummy(new Vector2(0, 2));
-
                         ImGui.PushItemWidth(125f);
 
+                        if (ImGui.BeginCombo($"##redirection-{action.RowId}-{i}", redirection[i])) {
 
-                        if (ImGui.BeginCombo($"##redirection-{action.RowId}-{i}", redirection[i]))
-                        {
-
-                            for (int j = 0; j < Util.TargetOptions.Length; j++)
-                            {
-                                if(Util.TargetOptions[j] == "Cursor" && !action.TargetArea)
-                                {
+                            for (int j = 0; j < Util.TargetOptions.Length; j++) {
+                               
+                                if(Util.TargetOptions[j] == "Cursor" && !action.TargetArea) {
                                     continue;
                                 }
 
-                                    bool is_selected = (Util.TargetOptions[j] == redirection[i]);
-                                if (ImGui.Selectable(Util.TargetOptions[j], is_selected))
-                                {
+                                bool is_selected = (Util.TargetOptions[j] == redirection[i]);
+
+                                if (ImGui.Selectable(Util.TargetOptions[j], is_selected)) {
                                     redirection[i] = Util.TargetOptions[j];
                                     save = true;
                                 }
 
-                                if (is_selected)
-                                {
+                                if (is_selected) {
                                     ImGui.SetItemDefaultFocus();
                                 }
-
                             }
 
                             ImGui.EndCombo();
                         }
 
                         ImGui.PopItemWidth();
-
                         ImGui.SameLine();
-
                         ImGui.PushFont(UiBuilder.IconFont);
-                        if (ImGui.Button($"{FontAwesomeIcon.Trash.ToIconString()}##-{action.RowId}-{i}"))
-                        {
+
+                        if (ImGui.Button($"{FontAwesomeIcon.Trash.ToIconString()}##-{action.RowId}-{i}")) {
                             remove = i;
                             save = true;
 
                         }
+
                         ImGui.PopFont();
                     }
 
-                    if (remove >= 0)
-                    {
-                        
+                    if (remove >= 0) {
                         redirection.RemoveAt(remove);
                     }
 
-                    if (redirection.Count > 0)
-                    {
+                    if (redirection.Count > 0) {
                         Configuration.Redirections[action.RowId] = redirection;
                         
-                    } else
-                    {
+                    } 
+                    else {
                         Configuration.Redirections.Remove(action.RowId);
                     }
 
-                    if(save)
-                    {
+                    if(save) {
                         Configuration.Save();
                     }
 
