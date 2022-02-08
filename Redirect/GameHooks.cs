@@ -16,8 +16,11 @@ namespace Redirect
 {
     internal class GameHooks : IDisposable
     {
+
         private const string UIMOSignature = "E8 ?? ?? ?? ?? 48 8B 6C 24 58 48 8B 5C 24 50 4C 8B 7C";
         private const string ActionResourceSig = "E8 ?? ?? ?? ?? 4C 8B E8 48 85 C0 0F 84 ?? ?? ?? ?? 41 83 FE 04";
+
+        private Configuration Configuration;
 
         private PartyList PartyMembers => Services.PartyMembers;
         private ClientState ClientState => Services.ClientState;
@@ -26,68 +29,59 @@ namespace Redirect
 
         private HashSet<int> Seen = new HashSet<int>();
 
-
         // param is the same in both functions,
         // 65535 can be observed for older food,
         // for teleports it is aertheryte ID,
         // generally 0
 
-        private unsafe delegate bool TryAction(IntPtr tp, ActionType t, uint id, ulong target, uint param, uint origin, uint unk, void* l);
-        private unsafe delegate bool UseAction(IntPtr tp, ActionType t, uint id, ulong target, Vector3* l, uint param = 0);
-
-        private delegate void MouseoverEntity(IntPtr t, IntPtr entity);
-
+        private unsafe delegate bool TryActionDelegate(IntPtr tp, ActionType t, uint id, ulong target, uint param, uint origin, uint unk, void* l);
+        private unsafe delegate bool UseActionDelegate(IntPtr tp, ActionType t, uint id, ulong target, Vector3* l, uint param = 0);
         private delegate IntPtr GetActionResourceDelegate(int id);
+        private delegate void MouseoverEntityDelegate(IntPtr t, IntPtr entity);
+
+
+        private Hook<TryActionDelegate> TryActionHook = null!;
+        private Hook<MouseoverEntityDelegate> MouseoverHook = null!;
+        private UseActionDelegate UseAction = null!;
+        private GetActionResourceDelegate GetActionResource = null!;
 
         private volatile GameObject CurrentUIMouseover = null!;
-
-        private Hook<TryAction> TryActionHook = null!;
-        private Hook<UseAction> UseActionHook = null!;
-        private Hook<MouseoverEntity> MouseoverHook = null!;
-        private static GetActionResourceDelegate GetActionResource = null!;
-
-        private Configuration Configuration;
 
         public GameHooks(Configuration config)
         {
             Configuration = config;
 
             var uimo_ptr = SigScanner.ScanModule(UIMOSignature);
+            var actionres_ptr = Services.SigScanner.ScanModule(ActionResourceSig);
 
-            if (uimo_ptr == IntPtr.Zero)
+            if (uimo_ptr == IntPtr.Zero || actionres_ptr == IntPtr.Zero)
             {
-                PluginLog.Error("Unable to initialize game hooks");
+                PluginLog.Error("Error during game hook initialization, plugin functionality is disabled.");
                 return;
             }
 
+            var actionres_offset = Dalamud.Memory.MemoryHelper.Read<int>(actionres_ptr + 1);
+            var actionres_fn_ptr = actionres_ptr + 5 + actionres_offset;
+            GetActionResource = Marshal.GetDelegateForFunctionPointer<GetActionResourceDelegate>(actionres_fn_ptr);
+
             var uimo_offset = Dalamud.Memory.MemoryHelper.Read<int>(uimo_ptr + 1);
-            var uimo_hook_ptr = uimo_ptr + 5 + uimo_offset;                   
+            var uimo_hook_ptr = uimo_ptr + 5 + uimo_offset;
+            MouseoverHook = new Hook<MouseoverEntityDelegate>(uimo_hook_ptr, OnMouseoverEntityCallback);
 
             unsafe
             {
-                UseActionHook = new Hook<UseAction>((IntPtr) ActionManager.fpUseActionLocation, UseActionCallback);
-                TryActionHook = new Hook<TryAction>((IntPtr) ActionManager.fpUseAction, TryActionCallback);
+                TryActionHook = new Hook<TryActionDelegate>((IntPtr) ActionManager.fpUseAction, TryActionCallback);
+                UseAction = Marshal.GetDelegateForFunctionPointer<UseActionDelegate>((IntPtr) ActionManager.fpUseActionLocation);
             }
 
             UpdateSprintQueueing(Configuration.QueueSprint);
 
-            MouseoverHook = new Hook<MouseoverEntity>(uimo_hook_ptr, OnMouseoverEntityCallback);
-
             TryActionHook.Enable();
-            UseActionHook.Enable();
             MouseoverHook.Enable();
         }
 
-        public static void UpdateSprintQueueing(bool enable)
+        public void UpdateSprintQueueing(bool enable)
         {
-            if(GetActionResource == null)
-            {
-                var actionres_ptr = Services.SigScanner.ScanModule(ActionResourceSig);
-                var actionres_offset = Dalamud.Memory.MemoryHelper.Read<int>(actionres_ptr + 1);
-                var actionres_fn_ptr = actionres_ptr + 5 + actionres_offset;
-                GetActionResource = Marshal.GetDelegateForFunctionPointer<GetActionResourceDelegate>(actionres_fn_ptr);
-            }
-
             if(enable)
             {
                 var res = GetActionResource(3);
@@ -218,7 +212,8 @@ namespace Redirect
                     return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
                 }
 
-                return UseActionHook.Original(this_ptr, action_type, id, target, &new_location, param);
+                UseAction(this_ptr, action_type, id, target, &new_location, param);
+                return true;
             }
 
             if (new_target != null)
@@ -235,18 +230,14 @@ namespace Redirect
                         return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
                     }
 
-                    return UseActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, &new_location);
+                    UseAction(this_ptr, action_type, id, new_target.ObjectId, &new_location);
+                    return true;
                 } 
 
                 return TryActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, param, origin, unk, location);
             }
 
             return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
-        }
-
-        private unsafe bool UseActionCallback(IntPtr this_ptr, ActionType action_type, uint id, ulong target, Vector3* location, uint unk)
-        {
-            return UseActionHook.Original(this_ptr, action_type, id, target, location, unk);
         }
 
         private void OnMouseoverEntityCallback(IntPtr this_ptr, IntPtr entity)
@@ -266,7 +257,6 @@ namespace Redirect
         public void Dispose()
         {
             TryActionHook?.Dispose();
-            UseActionHook?.Dispose();
             MouseoverHook?.Dispose();
             UpdateSprintQueueing(false);
         }

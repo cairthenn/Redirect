@@ -36,8 +36,8 @@ namespace Redirect
                 Configuration = new Configuration();
             }
 
-            PluginUi = new PluginUI(this, Configuration);
             Hooks = new GameHooks(Configuration);
+            PluginUi = new PluginUI(this, Configuration, Hooks);
 
             CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
             {
