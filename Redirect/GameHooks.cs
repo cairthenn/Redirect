@@ -83,15 +83,9 @@ namespace Redirect {
         // 0x40:    Name
 
         public void UpdateSprintQueueing(bool enable) {
-
-            if(enable) {
-                var res = GetActionResource(3);
-                Dalamud.SafeMemory.Write(res + 0x20, (byte) ActionType.Ability);
-            }
-            else {
-                var res = GetActionResource(3);
-                Dalamud.SafeMemory.Write(res + 0x20, (byte) ActionType.MainCommand);
-            }
+            var res = GetActionResource(3);
+            var type = enable ? ActionType.Ability : ActionType.MainCommand;
+            Dalamud.SafeMemory.Write(res + 0x20, (byte) type);
         }
 
         private bool TryQueueAction(IntPtr action_manager, uint id, uint param, ActionType action_type, ulong target_id) {
@@ -106,7 +100,7 @@ namespace Redirect {
             // within the ActionManager during the call
 
             Dalamud.SafeMemory.Write(action_manager + 0x68, 1);
-            Dalamud.SafeMemory.Write(action_manager + 0x6C, (byte)action_type);
+            Dalamud.SafeMemory.Write(action_manager + 0x6C, (byte) action_type);
             Dalamud.SafeMemory.Write(action_manager + 0x70, id);
             Dalamud.SafeMemory.Write(action_manager + 0x78, target_id);
             Dalamud.SafeMemory.Write(action_manager + 0x80, 0); // "Origin", for whatever reason
