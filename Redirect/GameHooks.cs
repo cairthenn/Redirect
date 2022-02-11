@@ -185,17 +185,21 @@ namespace Redirect {
                 return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
             }
 
+            var adj_id = id;
+            var temp_id = ActionManager.fpGetAdjustedActionId((ActionManager*) this_ptr, id);
+            var original_res = Actions.GetRow(temp_id);
+
+            if(original_res != null && original_res.IsPvP) {
+                return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
+            }
+
             // Macro queueing
-            
+
             origin = origin == 2 && Configuration.EnableMacroQueueing ? 0 : origin;
 
             // Actions placed on bars try to use their base action, so we need to get the upgraded version
-
-            var adj_id = id;
-            var temp_id = ActionManager.fpGetAdjustedActionId((ActionManager*) this_ptr, id);
-            var temp_res = Actions.GetRow(temp_id);
             
-            if(temp_res != null && temp_res.IsPlayerAction) {
+            if(original_res != null && original_res.IsPlayerAction) {
                 adj_id = temp_id;
             }
 
