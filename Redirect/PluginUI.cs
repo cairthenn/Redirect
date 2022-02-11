@@ -143,13 +143,6 @@ namespace Redirect {
         private void DrawActions() {
             bool save = false;
             ImGui.InputTextWithHint("##search", "Search", ref search, 100);
-            ImGui.SameLine();
-
-            var show_pvp = Configuration.DisplayPVP;
-            if (ImGui.Checkbox("Show PVP Actions", ref show_pvp)) {
-                Configuration.DisplayPVP = show_pvp;
-                Configuration.Save();
-            }
 
             if (!SelectedRoleActions && SelectedJob is null) {
                 return;
@@ -171,7 +164,7 @@ namespace Redirect {
                         return false;
                     }
 
-                    if (!Configuration.DisplayPVP && x.IsPvP) {
+                    if (x.IsPvP) {
                         return false;
                     }
 
@@ -192,7 +185,7 @@ namespace Redirect {
 
                     ImGui.TableNextColumn();
                     ImGui.AlignTextToFramePadding();
-                    ImGui.TextUnformatted($"{action.Name}{(action.IsPvP ? " (PVP)" : "")}");
+                    ImGui.TextUnformatted(action.Name);
 
                     // ADD REDIRECTION
 

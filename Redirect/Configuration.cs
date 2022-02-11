@@ -7,7 +7,6 @@ namespace Redirect {
     [Serializable]
     public class Configuration : IPluginConfiguration {
         public int Version { get; set; } = 1;
-        public bool DisplayPVP { get; set; } = false;
         public bool EnableMacroQueueing { get; set; } = false;
         public bool QueueSprint { get; set; } = false;
         public bool QueueGroundActions { get; set; } = false;
