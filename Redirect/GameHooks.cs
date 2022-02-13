@@ -10,18 +10,28 @@ using Dalamud.Hooking;
 using Dalamud.Logging;
 using ImGuiNET;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using Dalamud.Game.Gui.Toast;
 
 namespace Redirect { 
     internal class GameHooks : IDisposable {
 
-        private const string UIMOSignature = "E8 ?? ?? ?? ?? 48 8B 6C 24 58 48 8B 5C 24 50 4C 8B 7C";
+        private const string UIMOSig = "E8 ?? ?? ?? ?? 48 8B 6C 24 58 48 8B 5C 24 50 4C 8B 7C";
         private const string ActionResourceSig = "E8 ?? ?? ?? ?? 4C 8B E8 48 85 C0 0F 84 ?? ?? ?? ?? 41 83 FE 04";
+        private const string GroundActionCheckSig = "E8 ?? ?? ?? ?? 44 8b 83 ?? ?? ?? ?? 4C 8D 4C 24 60";
 
         private Configuration Configuration;
         private PartyList PartyMembers => Services.PartyMembers;
         private ClientState ClientState => Services.ClientState;
         private TargetManager TargetManager => Services.TargetManager;
         private SigScanner SigScanner => Services.SigScanner;
+        private ToastGui ToastGui => Services.ToastGui;
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        struct Results {
+            public bool success;
+            public bool valid;
+        }
+
 
         // param is the same in both functions,
         // 65535 can be observed for older food,
@@ -30,6 +40,8 @@ namespace Redirect {
 
         private unsafe delegate bool TryActionDelegate(IntPtr tp, ActionType t, uint id, ulong target, uint param, uint origin, uint unk, void* l);
         private unsafe delegate bool UseActionDelegate(IntPtr tp, ActionType t, uint id, ulong target, Vector3* l, uint param = 0);
+        private unsafe delegate void GroundActionValidDelegate(IntPtr tp, uint id, ActionType t, Results* results);
+        private delegate uint ActionValidDelegate(uint id, IntPtr src, IntPtr dst);
         private delegate IntPtr GetActionResourceDelegate(int id);
         private delegate void MouseoverEntityDelegate(IntPtr t, IntPtr entity);
 
@@ -37,16 +49,19 @@ namespace Redirect {
         private Hook<MouseoverEntityDelegate> MouseoverHook = null!;
         private UseActionDelegate UseAction = null!;
         private GetActionResourceDelegate GetActionResource = null!;
+        private GroundActionValidDelegate GroundActionValid = null!;
+        private ActionValidDelegate ActionValid = null!;
 
         private volatile GameObject CurrentUIMouseover = null!;
 
         public GameHooks(Configuration config) {
             Configuration = config;
 
-            var uimo_ptr = SigScanner.ScanModule(UIMOSignature);
-            var actionres_ptr = Services.SigScanner.ScanModule(ActionResourceSig);
+            var uimo_ptr = SigScanner.ScanModule(UIMOSig);
+            var actionres_ptr = SigScanner.ScanModule(ActionResourceSig);
+            var groundaction_ptr = SigScanner.ScanModule(GroundActionCheckSig);
 
-            if (uimo_ptr == IntPtr.Zero || actionres_ptr == IntPtr.Zero) {
+            if (uimo_ptr == IntPtr.Zero || actionres_ptr == IntPtr.Zero || groundaction_ptr == IntPtr.Zero) {
                 PluginLog.Error("Error during game hook initialization, plugin functionality is disabled.");
                 return;
             }
@@ -55,6 +70,10 @@ namespace Redirect {
             var actionres_fn_ptr = actionres_ptr + 5 + actionres_offset;
             GetActionResource = Marshal.GetDelegateForFunctionPointer<GetActionResourceDelegate>(actionres_fn_ptr);
 
+            var groundaction_offset = Dalamud.Memory.MemoryHelper.Read<int>(groundaction_ptr + 1);
+            var groundaction_fn_ptr = groundaction_ptr + 5 + groundaction_offset;
+            GroundActionValid = Marshal.GetDelegateForFunctionPointer<GroundActionValidDelegate>(groundaction_fn_ptr);
+
             var uimo_offset = Dalamud.Memory.MemoryHelper.Read<int>(uimo_ptr + 1);
             var uimo_hook_ptr = uimo_ptr + 5 + uimo_offset;
             MouseoverHook = new Hook<MouseoverEntityDelegate>(uimo_hook_ptr, OnMouseoverEntityCallback);
@@ -62,6 +81,7 @@ namespace Redirect {
             unsafe {
                 TryActionHook = new Hook<TryActionDelegate>((IntPtr) ActionManager.fpUseAction, TryActionCallback);
                 UseAction = Marshal.GetDelegateForFunctionPointer<UseActionDelegate>((IntPtr) ActionManager.fpUseActionLocation);
+                ActionValid = Marshal.GetDelegateForFunctionPointer<ActionValidDelegate>((IntPtr) ActionManager.fpGetActionInRangeOrLoS);
             }
 
             UpdateSprintQueueing(Configuration.QueueSprint);
@@ -219,17 +239,28 @@ namespace Redirect {
 
                 if(status == 0x244 || animation_timer > 0) {
                     if(!Configuration.QueueGroundActions) {
+                        ToastGui.ShowError("Cannot use while casting.");
                         return false;
                     }
 
                     return TryQueueAction(this_ptr, id, param, action_type, target);
                 }
 
-                var res = Actions.GetRow(adj_id)!;
-                var success = Services.GameGui.ScreenToWorld(ImGui.GetMousePos(), out var game_coords);
-                var new_location = ClampCoordinates(ClientState.LocalPlayer!.Position, game_coords, res.Range);
-                
-                return UseAction(this_ptr, action_type, id, target, &new_location, param);
+                Results results;
+
+                GroundActionValid(this_ptr, adj_id, action_type, &results);
+
+                if (results.valid) {
+
+                    var res = Actions.GetRow(adj_id)!;
+                    var success = Services.GameGui.ScreenToWorld(ImGui.GetMousePos(), out var game_coords);
+                    var new_location = ClampCoordinates(ClientState.LocalPlayer!.Position, game_coords, res.Range);
+
+                    return UseAction(this_ptr, action_type, id, target, &new_location, param);
+                }
+
+                ToastGui.ShowError("Invalid target.");
+                return false;
             }
 
             // Successfully changed target
@@ -253,15 +284,20 @@ namespace Redirect {
 
                 if (status == 0x244 || animation_timer > 0) {
                     if (!Configuration.QueueGroundActions) {
+                        ToastGui.ShowError("Cannot use while casting.");
                         return false;
                     }
 
                     return TryQueueAction(this_ptr, id, param, action_type, target);
                 }
 
-                var new_location = new_target.Position;
-                
-                return UseAction(this_ptr, action_type, id, new_target.ObjectId, &new_location);
+                if (ActionValid(id, ClientState.LocalPlayer!.Address, new_target.Address) == 0) {
+                    var new_location = new_target.Position;
+                    return UseAction(this_ptr, action_type, id, new_target.ObjectId, &new_location);
+                }
+
+                ToastGui.ShowError("Invalid target.");
+                return false;
             }
 
             // Use the action normally

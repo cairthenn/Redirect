@@ -141,12 +141,13 @@ namespace Redirect {
         }
 
         private void DrawActions() {
-            bool save = false;
-            ImGui.InputTextWithHint("##search", "Search", ref search, 100);
 
             if (!SelectedRoleActions && SelectedJob is null) {
                 return;
             }
+
+            bool save = false;
+            ImGui.InputTextWithHint("##search", "Search", ref search, 100);
 
             if (ImGui.BeginTable("actions", 4, ImGuiTableFlags.BordersInnerH)) {
                 ImGui.TableSetupColumn("##icon", ImGuiTableColumnFlags.WidthFixed);
