@@ -26,16 +26,6 @@ namespace Redirect {
         private SigScanner SigScanner => Services.SigScanner;
         private ToastGui ToastGui => Services.ToastGui;
 
-        [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        struct Results {
-            public bool success = false;
-            public bool valid = false;
-            public bool invalid = false;
-            public bool unk = false;
-            public IntPtr ptr;
-        }
-
-
         // param is the same in both functions,
         // 65535 can be observed for older food,
         // for teleports it is aertheryte ID,
