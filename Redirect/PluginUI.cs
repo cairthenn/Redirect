@@ -28,8 +28,8 @@ namespace Redirect {
             Configuration = config;
             GameHooks = hooks;
 
-           Plugin.Interface.UiBuilder.Draw += Draw;
-           Plugin.Interface.UiBuilder.OpenConfigUi += OnOpenConfig;
+            Plugin.Interface.UiBuilder.Draw += Draw;
+            Plugin.Interface.UiBuilder.OpenConfigUi += OnOpenConfig;
 
             Jobs = Plugin.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.ClassJob>()!.
                 Where(j => j.Role > 0 && j.ItemSoulCrystal.Value?.RowId > 0).ToList();
@@ -82,6 +82,7 @@ namespace Redirect {
 
                     ImGui.EndMenu();
                 }
+
                 ImGui.EndMenuBar();
             }
 
@@ -133,6 +134,7 @@ namespace Redirect {
             if(texture is null) {
                 return;
             }
+
             var drawsize = size == default ? new Vector2(texture.Width, texture.Height) : size;
             ImGui.Image(texture.ImGuiHandle, drawsize);
         }
@@ -142,7 +144,6 @@ namespace Redirect {
             if (!SelectedRoleActions && SelectedJob is null) {
                 return;
             }
-
 
             bool save = false;
             ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
@@ -154,7 +155,6 @@ namespace Redirect {
                 ImGui.TableSetupColumn("Action", ImGuiTableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("##plus-icons", ImGuiTableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Priority");
-
                 ImGui.TableHeadersRow();
 
                 var actions = SelectedRoleActions ? Actions.GetRoleActions() : Actions.GetJobActions(SelectedJob);
@@ -191,7 +191,6 @@ namespace Redirect {
                     // ADD REDIRECTION
 
                     ImGui.TableNextColumn();
-
                     ImGui.Dummy(new Vector2(0, 2));
                     ImGui.PushFont(UiBuilder.IconFont);
 
@@ -209,9 +208,7 @@ namespace Redirect {
                     }
 
                     ImGui.PopFont();
-
                     ImGui.TableNextColumn();
-
                     var remove = -1;
 
                     for (var i = 0; i < redirection.Count; i++) {
@@ -273,6 +270,7 @@ namespace Redirect {
 
                     ImGui.Dummy(new Vector2(0, 2));
                 }
+
                 ImGui.EndTable();
             }
         }
