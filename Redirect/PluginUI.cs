@@ -85,24 +85,21 @@ namespace Redirect {
                 ImGui.EndMenuBar();
             }
 
-            if (ImGui.BeginChild("abilities", new Vector2(ImGui.GetContentRegionAvail().X * 0.25f, -1))) {
-                
-                if (ImGui.TreeNodeEx("Jobs", ImGuiTreeNodeFlags.DefaultOpen)) {
+            ImGui.Dummy(new Vector2(ImGui.GetContentRegionAvail().X * 0.05f, -1));
+
+            if (ImGui.BeginChild("abilities", new Vector2(ImGui.GetContentRegionAvail().X * 0.20f, -1))) {        
                     
-                    if (ImGui.Selectable("Role Actions", SelectedRoleActions)) {
+                    if (ImGui.Selectable(" Role Actions", SelectedRoleActions)) {
                         SelectedRoleActions = true;
                         SelectedJob = null!;
                     }
 
                     foreach (var job in Jobs) { 
-                        if (ImGui.Selectable(job.Abbreviation, SelectedJob == job)) {
+                        if (ImGui.Selectable($" {job.Abbreviation}", SelectedJob == job)) {
                             SelectedJob = job;
                             SelectedRoleActions = false;
                         }
                     }
-
-                    ImGui.TreePop();
-                }
 
                 ImGui.EndChild();
             }
@@ -146,8 +143,11 @@ namespace Redirect {
                 return;
             }
 
+
             bool save = false;
-            ImGui.InputTextWithHint("##search", "Search", ref search, 100);
+            ImGui.PushItemWidth(ImGui.GetContentRegionAvail().X);
+            ImGui.InputTextWithHint("##search", "Search", ref search, 250);
+            ImGui.PopItemWidth();
 
             if (ImGui.BeginTable("actions", 4, ImGuiTableFlags.BordersInnerH)) {
                 ImGui.TableSetupColumn("##icon", ImGuiTableColumnFlags.WidthFixed);
