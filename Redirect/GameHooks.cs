@@ -311,12 +311,20 @@ namespace Redirect {
                     return TryQueueAction(this_ptr, id, param, action_type, target);
                 }
 
-                if (ActionValid(id, ClientState.LocalPlayer!.Address, new_target.Address) == 0) {
+                var result = ActionValid(id, ClientState.LocalPlayer!.Address, new_target.Address);
+
+                if (result == 0) {
                     var new_location = new_target.Position;
                     return UseAction(this_ptr, action_type, id, new_target.ObjectId, &new_location);
                 }
 
-                ToastGui.ShowError("Invalid target.");
+                if(result == 0x236) {
+                    ToastGui.ShowError("Target is not in range.");
+                }
+                else {
+                    ToastGui.ShowError("Invalid target.");
+                }
+
                 return false;
             }
 
