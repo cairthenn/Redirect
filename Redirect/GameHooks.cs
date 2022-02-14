@@ -8,7 +8,6 @@ using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.ClientState.Party;
 using Dalamud.Hooking;
 using Dalamud.Logging;
-using ImGuiNET;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using Dalamud.Game.Gui.Toast;
 
@@ -18,7 +17,6 @@ namespace Redirect {
         private const string UIMOSig = "E8 ?? ?? ?? ?? 48 8B 6C 24 58 48 8B 5C 24 50 4C 8B 7C";
         private const string ActionResourceSig = "E8 ?? ?? ?? ?? 4C 8B E8 48 85 C0 0F 84 ?? ?? ?? ?? 41 83 FE 04";
         private const string GroundActionCheckSig = "E8 ?? ?? ?? ?? 44 8B 83 ?? ?? ?? ?? 4C 8D 4C 24 60";
-
         private const string GetGroundPlacementSig = "E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4c 8B C3 48 8D 54";
 
         private Configuration Configuration;
@@ -45,25 +43,20 @@ namespace Redirect {
 
         private unsafe delegate bool TryActionDelegate(IntPtr tp, ActionType t, uint id, ulong target, uint param, uint origin, uint unk, void* l);
         private unsafe delegate bool UseActionDelegate(IntPtr tp, ActionType t, uint id, ulong target, Vector3* l, uint param = 0);
-        private unsafe delegate void GroundActionValidDelegate(IntPtr tp, uint id, ActionType t, Results* results);
-        private unsafe delegate bool GetGroundPlacementDelegate(IntPtr tp, uint id, ActionType t, Vector3* where, Results* results);
+        private unsafe delegate void GroundActionValidDelegate(IntPtr tp, uint id, ActionType t, bool* results);
+        private unsafe delegate bool GetGroundPlacementDelegate(IntPtr tp, uint id, ActionType t, Vector3* where, bool* results);
         private delegate uint ActionValidDelegate(uint id, IntPtr src, IntPtr dst);
         private delegate IntPtr GetActionResourceDelegate(int id);
         private delegate void MouseoverEntityDelegate(IntPtr t, IntPtr entity);
 
         private Hook<TryActionDelegate> TryActionHook = null!;
         private Hook<MouseoverEntityDelegate> MouseoverHook = null!;
-        private Hook<GetGroundPlacementDelegate> GroundPlacementHook = null!;
-        private Hook<GroundActionValidDelegate> GroundValidHook = null!;
         private UseActionDelegate UseAction = null!;
         private GetActionResourceDelegate GetActionResource = null!;
         private GroundActionValidDelegate GroundActionValid = null!;
         private GetGroundPlacementDelegate GetGroundPlacement = null!;
         private ActionValidDelegate ActionValid = null!;
-
         private volatile GameObject CurrentUIMouseover = null!;
-
-        private IntPtr thing;
 
         public GameHooks(Configuration config) {
             Configuration = config;
@@ -84,14 +77,12 @@ namespace Redirect {
 
             var groundaction_offset = Dalamud.Memory.MemoryHelper.Read<int>(groundaction_ptr + 1);
             var groundaction_fn_ptr = groundaction_ptr + 5 + groundaction_offset;
-            //GroundActionValid = Marshal.GetDelegateForFunctionPointer<GroundActionValidDelegate>(groundaction_fn_ptr);
-
-            PluginLog.Information($"{groundaction_fn_ptr:x}");
+            GroundActionValid = Marshal.GetDelegateForFunctionPointer<GroundActionValidDelegate>(groundaction_fn_ptr);
 
 
             var gp_offset = Dalamud.Memory.MemoryHelper.Read<int>(gp_ptr + 1);
             var gp_fn_ptr = gp_ptr + 5 + gp_offset;
-            //GetGroundPlacement = Marshal.GetDelegateForFunctionPointer<GetGroundPlacementDelegate>(gp_fn_ptr);
+            GetGroundPlacement = Marshal.GetDelegateForFunctionPointer<GetGroundPlacementDelegate>(gp_fn_ptr);
 
             var uimo_offset = Dalamud.Memory.MemoryHelper.Read<int>(uimo_ptr + 1);
             var uimo_hook_ptr = uimo_ptr + 5 + uimo_offset;
@@ -99,8 +90,6 @@ namespace Redirect {
 
             unsafe {
                 TryActionHook = new Hook<TryActionDelegate>((IntPtr) ActionManager.fpUseAction, TryActionCallback);
-                GroundPlacementHook = new Hook<GetGroundPlacementDelegate>(gp_fn_ptr, GroundPlacementCallback);
-                GroundValidHook = new Hook<GroundActionValidDelegate>(groundaction_fn_ptr, GroundActionValidCallback);
                 UseAction = Marshal.GetDelegateForFunctionPointer<UseActionDelegate>((IntPtr) ActionManager.fpUseActionLocation);
                 ActionValid = Marshal.GetDelegateForFunctionPointer<ActionValidDelegate>((IntPtr) ActionManager.fpGetActionInRangeOrLoS);
             }
@@ -109,8 +98,6 @@ namespace Redirect {
 
             TryActionHook.Enable();
             MouseoverHook.Enable();
-            GroundPlacementHook.Enable();
-            GroundValidHook.Enable();
         }
 
         // ActionResource:
@@ -213,21 +200,6 @@ namespace Redirect {
             }
         }
 
-        private unsafe void GroundActionValidCallback(IntPtr this_ptr, uint id, ActionType type, Results* r) {
-
-
-            GroundValidHook.Original(this_ptr, id, type, r);
-            PluginLog.Information($" ValidCheck: {(IntPtr)r:x} - {r->success}, {r->valid}, {r->invalid}, {r->ptr}");
-        }
-
-        private unsafe bool GroundPlacementCallback(IntPtr this_ptr, uint id, ActionType type, Vector3* v, Results* r) {
-
-            thing = r->ptr;
-            var result = GroundPlacementHook.Original(this_ptr, id, type, v, r);
-            PluginLog.Information($"{(IntPtr) v:x} | {(IntPtr)r:x} - {r->success}, {r->valid}");
-            return result;
-        }
-
         private unsafe bool TryActionCallback(IntPtr this_ptr, ActionType action_type, uint id, ulong target, uint param, uint origin, uint unk, void* location) {
             // Special sprint handling
             
@@ -284,35 +256,30 @@ namespace Redirect {
                     return TryQueueAction(this_ptr, id, param, action_type, target);
                 }
 
-                Results r;
+                bool[] results  = new bool[4];
+
+                fixed (bool* p = results) {
+                    GroundActionValid(this_ptr, adj_id, action_type, p);
+                }
+
                 Vector3 v;
-                
+                bool[] results2 = new bool[4];
 
-                r.success = false;
-                r.valid = false;
-                r.invalid = false;
-                r.ptr = thing;
+                fixed (bool* p = results2) {
+                    bool success = GetGroundPlacement(this_ptr, adj_id, action_type, &v, p);
+                }
 
-                GroundValidHook.Original(this_ptr, adj_id, action_type, &r);
-
-                Results r2;
-
-                bool success = GroundPlacementHook.Original(this_ptr, adj_id, action_type, &v, &r2);
-                
-                PluginLog.Information($"{r.success}, {r.valid}, {r.invalid}");
-                //PluginLog.Information($"{success} | {v.X}, {v.Y}, {v.Z}, {r.success}, {r.valid}, {r.unk}, {r.unk2}");
-
-
-                if (false) {
-
-                    //var res = Actions.GetRow(adj_id)!;
-                    //var success = Services.GameGui.ScreenToWorld(ImGui.GetMousePos(), out var game_coords);
-                    //var new_location = ClampCoordinates(ClientState.LocalPlayer!.Position, game_coords, res.Range);
-
+                if (results[1]) {
                     return UseAction(this_ptr, action_type, id, target, &v, param);
                 }
 
-                ToastGui.ShowError("Invalid target.");
+                if(results[2]) {
+                    ToastGui.ShowError("Target is not in range.");
+                }
+                else {
+                    ToastGui.ShowError("Invalid target.");
+                }
+
                 return false;
             }
 
@@ -372,8 +339,6 @@ namespace Redirect {
         public void Dispose() {
             TryActionHook?.Dispose();
             MouseoverHook?.Dispose();
-            GroundPlacementHook?.Dispose();
-            GroundValidHook?.Dispose();
             UpdateSprintQueueing(false);
         }
     }
