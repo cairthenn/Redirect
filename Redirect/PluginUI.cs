@@ -62,7 +62,11 @@ namespace Redirect {
 
             if (ImGui.BeginMenuBar()) {
                 if (ImGui.BeginMenu("Options")) {
-                    
+
+                    ImGui.Text("Global defaults:");
+
+                    ImGui.Dummy(new Vector2(-1, 1));
+
                     bool friendly_mo = Configuration.DefaultMouseoverFriendly;
                     if (ImGui.Checkbox("Treat all friendly actions as mouseovers", ref friendly_mo)) {
                         Configuration.DefaultMouseoverFriendly = friendly_mo;
@@ -75,21 +79,33 @@ namespace Redirect {
 
                     ImGui.Dummy(new Vector2(-1, 1));
 
+                    ImGui.Text("Allow these actions to queue:");
+
+                    ImGui.Dummy(new Vector2(-1, 1));
+
                     bool queue_ground = Configuration.QueueGroundActions;
-                    if (ImGui.Checkbox("Queue ground actions", ref queue_ground)) {
+                    if (ImGui.Checkbox("Ground targeted actions", ref queue_ground)) {
                         Configuration.QueueGroundActions = queue_ground;
                     }
 
                     bool macro_queue = Configuration.EnableMacroQueueing;
-                    if (ImGui.Checkbox("Queue macros", ref macro_queue)) {
+                    if (ImGui.Checkbox("Actions from macros", ref macro_queue)) {
                         Configuration.EnableMacroQueueing = macro_queue;
                     }
 
                     bool sprint_queue = Configuration.QueueSprint;
-                    if (ImGui.Checkbox("Queue sprint", ref sprint_queue)) {
+                    if (ImGui.Checkbox("Sprint", ref sprint_queue)) {
                         if(sprint_queue != Configuration.QueueSprint) {
                             GameHooks.UpdateSprintQueueing(sprint_queue);
                             Configuration.QueueSprint = sprint_queue;
+                        }
+                    }
+
+                    bool item_queue = Configuration.QueuePotions;
+                    if (ImGui.Checkbox("Potions", ref item_queue)) {
+                        if (item_queue != Configuration.QueuePotions) {
+                            GameHooks.UpdatePotionQueueing(item_queue);
+                            Configuration.QueuePotions = item_queue;
                         }
                     }
 
