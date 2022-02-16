@@ -129,12 +129,28 @@ namespace Redirect {
         }
 
 
-        private GameObject? RedirectTarget(uint action_id, ref bool place_at_cursor) {
-            if (!Configuration.Redirections.ContainsKey(action_id)) {
+        private GameObject? RedirectTarget(Lumina.Excel.GeneratedSheets.Action action, ref bool place_at_cursor) {
+
+            var id = action.RowId;
+
+            if (!Configuration.Redirections.ContainsKey(id)) {
+                
+                if(Configuration.DefaultMouseoverFriendly && (action.CanTargetFriendly || action.CanTargetParty || action.TargetArea)) {
+                    
+                    if(CurrentUIMouseover == null && action.TargetArea) {
+                        place_at_cursor = true;
+                    }
+                    
+                    return CurrentUIMouseover;
+                }
+                else if(Configuration.DefaultMouseoverHostile && action.CanTargetHostile) {
+                    return CurrentUIMouseover;
+                }
+
                 return null;
             }
 
-            foreach (var t in Configuration.Redirections[action_id].Priority) {
+            foreach (var t in Configuration.Redirections[id].Priority) {
                 var nt = ResolveTarget(t, ref place_at_cursor);
                 if (nt != null) {
                     return nt;
@@ -142,18 +158,6 @@ namespace Redirect {
             };
 
             return null;
-        }
-
-        private Vector3 ClampCoordinates(Vector3 origin, Vector3 dest, int range) {
-            if (Vector3.Distance(origin, dest) <= range) {
-                return dest;
-            }
-            
-            var o = new Vector2(origin.X, origin.Z);
-            var d = new Vector2(dest.X, dest.Z);
-            var n = Vector2.Normalize(d - o);
-            var t = o + (n * range);
-            return new Vector3(t.X, dest.Y, t.Y);
         }
 
         public GameObject? ResolveTarget(string target, ref bool place_at_cursor) {
@@ -192,7 +196,7 @@ namespace Redirect {
 
         private unsafe bool TryActionCallback(IntPtr this_ptr, ActionType action_type, uint id, ulong target, uint param, uint origin, uint unk, void* location) {
             // Special sprint handling
-            
+
             if(Configuration.QueueSprint && action_type == ActionType.General && id == 4) {
                 return TryActionHook.Original(this_ptr, ActionType.Spell, 3, target, param, origin, unk, location);
             }
@@ -223,8 +227,9 @@ namespace Redirect {
                 adj_id = temp_id;
             }
 
+            var adj_res = Actions.GetRow(adj_id)!;
             bool place_at_cursor = false;
-            var new_target = RedirectTarget(adj_id, ref place_at_cursor);
+            var new_target = RedirectTarget(adj_res, ref place_at_cursor);
 
             // Ground targeting actions at the cursor
 
@@ -276,9 +281,8 @@ namespace Redirect {
             // Successfully changed target
 
             if (new_target != null) {
-                var res = Actions.GetRow(adj_id)!;
 
-                if (!res.TargetArea) {
+                if (!adj_res.TargetArea) {
                     return TryActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, param, origin, unk, location);
                 }
 

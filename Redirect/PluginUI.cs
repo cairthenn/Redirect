@@ -62,18 +62,31 @@ namespace Redirect {
 
             if (ImGui.BeginMenuBar()) {
                 if (ImGui.BeginMenu("Options")) {
+                    
+                    bool friendly_mo = Configuration.DefaultMouseoverFriendly;
+                    if (ImGui.Checkbox("Treat all friendly actions as mouseovers", ref friendly_mo)) {
+                        Configuration.DefaultMouseoverFriendly = friendly_mo;
+                    }
+
+                    bool hostile_mo = Configuration.DefaultMouseoverHostile;
+                    if (ImGui.Checkbox("Treat all hostile actions as mouseovers", ref hostile_mo)) {
+                        Configuration.DefaultMouseoverHostile = hostile_mo;
+                    }
+
+                    ImGui.Dummy(new Vector2(-1, 1));
+
                     bool queue_ground = Configuration.QueueGroundActions;
-                    if (ImGui.Checkbox("Queue Ground Actions", ref queue_ground)) {
+                    if (ImGui.Checkbox("Queue ground actions", ref queue_ground)) {
                         Configuration.QueueGroundActions = queue_ground;
                     }
 
                     bool macro_queue = Configuration.EnableMacroQueueing;
-                    if (ImGui.Checkbox("Queue Macros", ref macro_queue)) {
+                    if (ImGui.Checkbox("Queue macros", ref macro_queue)) {
                         Configuration.EnableMacroQueueing = macro_queue;
                     }
 
                     bool sprint_queue = Configuration.QueueSprint;
-                    if (ImGui.Checkbox("Queue Sprint", ref sprint_queue)) {
+                    if (ImGui.Checkbox("Queue sprint", ref sprint_queue)) {
                         if(sprint_queue != Configuration.QueueSprint) {
                             GameHooks.UpdateSprintQueueing(sprint_queue);
                             Configuration.QueueSprint = sprint_queue;
@@ -142,6 +155,11 @@ namespace Redirect {
         private void DrawActions() {
 
             if (!SelectedRoleActions && SelectedJob is null) {
+                var region = ImGui.GetContentRegionAvail();
+                ImGui.Dummy(new Vector2(1, region.Y * .45f));
+                ImGui.Dummy(new Vector2(region.X * .30f, -1));
+                ImGui.SameLine();
+                ImGui.Text("Select a job to get started!");
                 return;
             }
 
