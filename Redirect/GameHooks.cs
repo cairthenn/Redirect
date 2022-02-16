@@ -85,6 +85,7 @@ namespace Redirect {
             }
 
             UpdateSprintQueueing(Configuration.QueueSprint);
+            UpdatePotionQueueing(Configuration.QueuePotions);
 
             TryActionHook.Enable();
             MouseoverHook.Enable();
@@ -106,6 +107,12 @@ namespace Redirect {
             var res = GetActionResource(3);
             var type = enable ? ActionType.Ability : ActionType.MainCommand;
             Dalamud.SafeMemory.Write(res + 0x20, (byte) type);
+        }
+
+        public void UpdatePotionQueueing(bool enable) {
+            var res = GetActionResource(0x34E);
+            var type = enable ? ActionType.Ability : ActionType.Item;
+            Dalamud.SafeMemory.Write(res + 0x20, (byte)type);
         }
 
         private bool TryQueueAction(IntPtr action_manager, uint id, uint param, ActionType action_type, ulong target_id) {
@@ -195,9 +202,14 @@ namespace Redirect {
         }
 
         private unsafe bool TryActionCallback(IntPtr this_ptr, ActionType action_type, uint id, ulong target, uint param, uint origin, uint unk, void* location) {
-            // Special sprint handling
+            
+            // Potion dequeueing
+            if(Configuration.QueuePotions && action_type == ActionType.Item && origin == 1) {
+                param = 65535;
+            }
 
-            if(Configuration.QueueSprint && action_type == ActionType.General && id == 4) {
+            // Special sprint handling
+            if (Configuration.QueueSprint && action_type == ActionType.General && id == 4) {
                 return TryActionHook.Original(this_ptr, ActionType.Spell, 3, target, param, origin, unk, location);
             }
 
@@ -341,6 +353,7 @@ namespace Redirect {
         public void Dispose() {
             TryActionHook?.Dispose();
             MouseoverHook?.Dispose();
+            UpdatePotionQueueing(false);
             UpdateSprintQueueing(false);
         }
     }
