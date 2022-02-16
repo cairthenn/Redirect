@@ -111,7 +111,7 @@ namespace Redirect {
 
         public void UpdatePotionQueueing(bool enable) {
             var res = GetActionResource(0x34E);
-            var type = enable ? ActionType.Ability : ActionType.Item;
+            var type = enable ? ActionType.Ability : ActionType.General;
             Dalamud.SafeMemory.Write(res + 0x20, (byte)type);
         }
 
