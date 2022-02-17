@@ -68,9 +68,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="icon.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+	  <Content Include="icon.png" Link="images\icon.png" CopyToOutputDirectory="Always" />
   </ItemGroup>
 
 </Project>
