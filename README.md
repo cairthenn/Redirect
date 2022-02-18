@@ -4,17 +4,17 @@ Redirect is a [Dalamud](https://github.com/goatcorp/Dalamud) plugin for Final Fa
 
 The plugin enables seamless use of mouseover and focus target functionality by allowing you to change the base targeting priority of each action on your bars.
 
+Additionally, it enables action queueing for things that the game normally won't cover, including macros, Sprint, and combat potions.
+
 ![Redirect preview](https://github.com/cairthenn/Redirect/blob/main/preview.png?raw=true)
 
 ### How do I install it?
 
-The easiest way is to follow the instructions at my [custom plugin repository](https://github.com/cairthenn/CairDalamudPlugins), which also lets you see when updates are released. You are also free to compile the plugin yourself and install it that way.
+This plugin is currently available through the Dalamud plugin installer *only if* testing mode is enabled. Otherwise, the easiest way is to follow the instructions at my [custom plugin repository](https://github.com/cairthenn/CairDalamudPlugins).
 
 ### Commands
 
-This plugin has a single command, `/redirect`, that opens the configuration.
-
-In addition to the standard configuration, there is an options menu that provides some additional features, such as queueing Sprint and macros!
+This plugin has a single command, `/redirect`, that opens the configuration. In addition to the standard configuration, there is an options menu that provides some additional features.
 
 ### About macro queueing
 
@@ -32,9 +32,15 @@ Normally, if you try to use this macro while casting, nothing will happen. With 
 
 Note that if you also have custom action targeting enabled in the configuration, it will override your macro's intended target. However, this system allows you to completely avoid the configuration step altogether and simply play using normal ingame macros that now work as though they were action bar abilities!
 
-### About sprint queueing
+**Notice**: This is not setup to allow you to create one-button macros that will play the game for you, and actually explicitly prevents it. If you use a macro that has multiple actions that can succeed while you are not casting, it will use the first one immediately *and* queue the second one. This is the intended behavior.
 
-Similarly, there is an option that lets the usually-unqueueable action, Sprint, queue like any other ability.
+### About sprint and potion queueing
+
+There are options that let both Sprint and combat potions queue up like normal abilities. Each option is configurable separately. Certain items, like food, are simply not meant to enter the queue and will not be supported.
+
+### Global configuration
+
+If you're simply looking for mouseover functionality, there are some options provided that allow you to default *all friendly* and *all hostile* actions to UI Mouseover behavior. If this isn't your cup of tea, you can also configure each action individually, as described below.
 
 ### How do I setup a UI mouseover?
 
