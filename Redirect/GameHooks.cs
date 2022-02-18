@@ -376,8 +376,6 @@ namespace Redirect {
 
             // Use the action normally
 
-            PluginLog.Information("Using action normally");
-
             return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
         }
 
