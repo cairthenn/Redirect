@@ -63,18 +63,41 @@ namespace Redirect {
             if (ImGui.BeginMenuBar()) {
                 if (ImGui.BeginMenu("Options")) {
 
-                    ImGui.Text("Global defaults:");
+                    ImGui.Text("Global settings:");
 
                     ImGui.Dummy(new Vector2(-1, 1));
+
+                    bool range_fail = Configuration.SilentRangeFailure;
+                    if (ImGui.Checkbox("Skip targets out of range", ref range_fail)) {
+                        Configuration.SilentRangeFailure = range_fail;
+                    }
 
                     bool friendly_mo = Configuration.DefaultMouseoverFriendly;
                     if (ImGui.Checkbox("Treat all friendly actions as mouseovers", ref friendly_mo)) {
                         Configuration.DefaultMouseoverFriendly = friendly_mo;
                     }
 
+                    if (friendly_mo) {
+                        ImGui.Dummy(new Vector2(2, -1));
+                        ImGui.SameLine();
+                        bool friendly_mo_model = Configuration.DefaultModelMouseoverFriendly;
+                        if (ImGui.Checkbox("Include friendly target models", ref friendly_mo_model)) {
+                            Configuration.DefaultModelMouseoverFriendly = friendly_mo_model;
+                        }
+                    }
+
                     bool hostile_mo = Configuration.DefaultMouseoverHostile;
                     if (ImGui.Checkbox("Treat all hostile actions as mouseovers", ref hostile_mo)) {
                         Configuration.DefaultMouseoverHostile = hostile_mo;
+                    }
+
+                    if (hostile_mo) {
+                        ImGui.Dummy(new Vector2(2, -1));
+                        ImGui.SameLine();
+                        bool hostile_mo_model = Configuration.DefaultModelMouseoverFriendly;
+                        if (ImGui.Checkbox("Include hostile target models", ref hostile_mo_model)) {
+                            Configuration.DefaultModelMouseoverHostile = hostile_mo_model;
+                        }
                     }
 
                     ImGui.Dummy(new Vector2(-1, 1));

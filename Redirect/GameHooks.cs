@@ -46,7 +46,7 @@ namespace Redirect {
         private GroundActionValidDelegate GroundActionValid = null!;
         private GetGroundPlacementDelegate GetGroundPlacement = null!;
         private ActionValidDelegate ActionValid = null!;
-        private volatile GameObject CurrentUIMouseover = null!;
+        private volatile GameObject? CurrentUIMouseover = null!;
 
         public GameHooks(Configuration config) {
             Configuration = config;
@@ -135,6 +135,31 @@ namespace Redirect {
             return true;
         }
 
+        private bool ValidateRange(Lumina.Excel.GeneratedSheets.Action action, GameObject? target, bool place_at_cursor) {
+
+            if(!Configuration.SilentRangeFailure) {
+                return true;
+            }
+
+            if (place_at_cursor) {
+                bool[] results = new bool[4];
+                unsafe {
+                    fixed (bool* p = results) {
+                        GroundActionValid((IntPtr)ActionManager.Instance(), action.RowId, ActionType.Spell, p);
+                    }
+                    var success = results[0] && results[1] && results[2];
+                    return success;
+                }
+            }
+            else if (target == null) {
+                return false;
+            }
+
+            var result = ActionValid(action.RowId, ClientState.LocalPlayer!.Address, target.Address);
+
+            return result == 0;
+        }
+
 
         private GameObject? RedirectTarget(Lumina.Excel.GeneratedSheets.Action action, ref bool place_at_cursor) {
 
@@ -144,14 +169,24 @@ namespace Redirect {
                 
                 if(Configuration.DefaultMouseoverFriendly && (action.CanTargetFriendly || action.CanTargetParty || action.TargetArea)) {
                     
-                    if(CurrentUIMouseover == null && action.TargetArea) {
+                    if (CurrentUIMouseover != null && ValidateRange(action, CurrentUIMouseover, false)) {
+                        return CurrentUIMouseover;
+                    }
+                    else if (action.TargetArea && ValidateRange(action, null, true)) {
                         place_at_cursor = true;
                     }
-                    
-                    return CurrentUIMouseover;
+                    else if (Configuration.DefaultModelMouseoverFriendly && ValidateRange(action, null, true)) {
+                        return TargetManager.MouseOverTarget;
+                    }
                 }
                 else if(Configuration.DefaultMouseoverHostile && action.CanTargetHostile) {
-                    return CurrentUIMouseover;
+
+                    if (CurrentUIMouseover != null && ValidateRange(action, CurrentUIMouseover, false)) {
+                        return CurrentUIMouseover;
+                    }
+                    else if (Configuration.DefaultModelMouseoverHostile && ValidateRange(action, null, true)) {
+                        return TargetManager.MouseOverTarget;
+                    }
                 }
 
                 return null;
@@ -159,7 +194,9 @@ namespace Redirect {
 
             foreach (var t in Configuration.Redirections[id].Priority) {
                 var nt = ResolveTarget(t, ref place_at_cursor);
-                if (nt != null) {
+                var range_ok = ValidateRange(action, nt, place_at_cursor);
+
+                if (range_ok && (nt != null || place_at_cursor)) {
                     return nt;
                 }
             };
@@ -168,6 +205,9 @@ namespace Redirect {
         }
 
         public GameObject? ResolveTarget(string target, ref bool place_at_cursor) {
+
+            place_at_cursor = false;
+
             switch (target) {
                 case "Cursor":
                     place_at_cursor = true;
@@ -336,18 +376,14 @@ namespace Redirect {
 
             // Use the action normally
 
+            PluginLog.Information("Using action normally");
+
             return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
         }
 
         private void OnMouseoverEntityCallback(IntPtr this_ptr, IntPtr entity) {
             MouseoverHook.Original(this_ptr, entity);
-
-            if (entity == IntPtr.Zero) {
-                CurrentUIMouseover = null!;
-            } 
-            else {
-                CurrentUIMouseover = Services.ObjectTable.CreateObjectReference(entity)!;
-            }
+            CurrentUIMouseover = entity == IntPtr.Zero ? null : Services.ObjectTable.CreateObjectReference(entity);
         }
 
         public void Dispose() {
