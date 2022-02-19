@@ -94,7 +94,7 @@ namespace Redirect {
                     if (hostile_mo) {
                         ImGui.Dummy(new Vector2(2, -1));
                         ImGui.SameLine();
-                        bool hostile_mo_model = Configuration.DefaultModelMouseoverFriendly;
+                        bool hostile_mo_model = Configuration.DefaultModelMouseoverHostile;
                         if (ImGui.Checkbox("Include hostile target models", ref hostile_mo_model)) {
                             Configuration.DefaultModelMouseoverHostile = hostile_mo_model;
                         }
