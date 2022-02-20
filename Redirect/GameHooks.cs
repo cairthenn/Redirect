@@ -135,10 +135,13 @@ namespace Redirect {
             return true;
         }
 
-        private bool ValidateRange(Lumina.Excel.GeneratedSheets.Action action, GameObject? target, bool place_at_cursor) {
+        private bool ValidateRange(Lumina.Excel.GeneratedSheets.Action action, GameObject? target, bool place_at_cursor = false) {
 
             if(!Configuration.SilentRangeFailure) {
                 return true;
+            } 
+            else if (target == null && !place_at_cursor) {
+                return false;
             }
 
             if (place_at_cursor) {
@@ -147,17 +150,12 @@ namespace Redirect {
                     fixed (bool* p = results) {
                         GroundActionValid((IntPtr)ActionManager.Instance(), action.RowId, ActionType.Spell, p);
                     }
-                    var success = results[0] && results[1] && results[2];
+                    var success = results[0] && results[1];
                     return success;
                 }
             }
-            else if (target == null) {
-                return false;
-            }
 
-            var result = ActionValid(action.RowId, ClientState.LocalPlayer!.Address, target.Address);
-
-            return result == 0;
+            return ActionValid(action.RowId, ClientState.LocalPlayer!.Address, target!.Address) == 0;
         }
 
 
@@ -165,32 +163,37 @@ namespace Redirect {
 
             var id = action.RowId;
 
+            // Global fallbacks
+
             if (!Configuration.Redirections.ContainsKey(id)) {
                 
-                if(Configuration.DefaultMouseoverFriendly && (action.CanTargetFriendly || action.CanTargetParty || action.TargetArea)) {
+                if(Configuration.DefaultMouseoverFriendly && (action.IsActionAllowed() || action.CanTargetFriendly())) {
                     
-                    if (CurrentUIMouseover != null && ValidateRange(action, CurrentUIMouseover, false)) {
+                    if (CurrentUIMouseover != null && ValidateRange(action, CurrentUIMouseover)) {
                         return CurrentUIMouseover;
                     }
-                    else if (action.TargetArea && ValidateRange(action, null, true)) {
-                        place_at_cursor = true;
-                    }
-                    else if (Configuration.DefaultModelMouseoverFriendly && ValidateRange(action, null, true)) {
+                    else if (Configuration.DefaultModelMouseoverFriendly && TargetManager.MouseOverTarget != null && ValidateRange(action, TargetManager.MouseOverTarget)) {
                         return TargetManager.MouseOverTarget;
+                    }
+                    else if (action.TargetArea && !action.IsActionBlocked()) {
+                        place_at_cursor = true;
+                        return null;
                     }
                 }
                 else if(Configuration.DefaultMouseoverHostile && action.CanTargetHostile) {
 
-                    if (CurrentUIMouseover != null && ValidateRange(action, CurrentUIMouseover, false)) {
+                    if (CurrentUIMouseover != null && ValidateRange(action, CurrentUIMouseover)) {
                         return CurrentUIMouseover;
                     }
-                    else if (Configuration.DefaultModelMouseoverHostile && ValidateRange(action, null, true)) {
+                    else if (Configuration.DefaultModelMouseoverHostile && ValidateRange(action, TargetManager.MouseOverTarget)) {
                         return TargetManager.MouseOverTarget;
                     }
                 }
 
                 return null;
             }
+
+            // Individual spells
 
             foreach (var t in Configuration.Redirections[id].Priority) {
                 var nt = ResolveTarget(t, ref place_at_cursor);

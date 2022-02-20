@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Authors></Authors>
     <Company></Company>
-    <Version>1.0.2.9</Version>
+    <Version>1.0.2.10</Version>
     <Description>Action target switching plugin for Dalamud.</Description>
     <Copyright>Cair © 2021</Copyright>
     <PackageProjectUrl>https://github.com/cairthenn/Redirect</PackageProjectUrl>

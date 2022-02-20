@@ -34,7 +34,7 @@ namespace Redirect {
             var jobs = Services.DataManager.GetExcelSheet<JobInfo>()!.Where(j => j.Role > 0 && j.ItemSoulCrystal.Value?.RowId > 0).ToList();
 
             foreach (var job in jobs) {
-                Jobs[job] = Sheet.Where(a => (a.HasOptionalTargeting() && a.UsableByJob(job)) || job.IsActionWhiteListed(a)).ToList();
+                Jobs[job] = Sheet.Where(a => a.UsableByJob(job) && (a.HasOptionalTargeting() || a.IsActionAllowed())).ToList();
             }
         }
     }
