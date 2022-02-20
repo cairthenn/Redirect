@@ -159,33 +159,33 @@ namespace Redirect {
         }
 
 
-        private GameObject? RedirectTarget(Lumina.Excel.GeneratedSheets.Action action, ref bool place_at_cursor) {
+        private GameObject? RedirectTarget(Lumina.Excel.GeneratedSheets.Action original, Lumina.Excel.GeneratedSheets.Action upgraded, ref bool place_at_cursor) {
 
-            var id = action.RowId;
+            var id = original.RowId;
 
             // Global fallbacks
 
             if (!Configuration.Redirections.ContainsKey(id)) {
                 
-                if(Configuration.DefaultMouseoverFriendly && (action.IsActionAllowed() || action.CanTargetFriendly())) {
+                if(Configuration.DefaultMouseoverFriendly && upgraded.CanTargetFriendly()) {
                     
-                    if (CurrentUIMouseover != null && ValidateRange(action, CurrentUIMouseover)) {
+                    if (CurrentUIMouseover != null && ValidateRange(upgraded, CurrentUIMouseover)) {
                         return CurrentUIMouseover;
                     }
-                    else if (Configuration.DefaultModelMouseoverFriendly && TargetManager.MouseOverTarget != null && ValidateRange(action, TargetManager.MouseOverTarget)) {
+                    else if (Configuration.DefaultModelMouseoverFriendly && TargetManager.MouseOverTarget != null && ValidateRange(upgraded, TargetManager.MouseOverTarget)) {
                         return TargetManager.MouseOverTarget;
                     }
-                    else if (action.TargetArea && !action.IsActionBlocked()) {
+                    else if (upgraded.TargetArea && !upgraded.IsActionBlocked()) {
                         place_at_cursor = true;
                         return null;
                     }
                 }
-                else if(Configuration.DefaultMouseoverHostile && action.CanTargetHostile) {
+                else if(Configuration.DefaultMouseoverHostile && upgraded.CanTargetHostile) {
 
-                    if (CurrentUIMouseover != null && ValidateRange(action, CurrentUIMouseover)) {
+                    if (CurrentUIMouseover != null && ValidateRange(upgraded, CurrentUIMouseover)) {
                         return CurrentUIMouseover;
                     }
-                    else if (Configuration.DefaultModelMouseoverHostile && ValidateRange(action, TargetManager.MouseOverTarget)) {
+                    else if (Configuration.DefaultModelMouseoverHostile && ValidateRange(upgraded, TargetManager.MouseOverTarget)) {
                         return TargetManager.MouseOverTarget;
                     }
                 }
@@ -197,7 +197,7 @@ namespace Redirect {
 
             foreach (var t in Configuration.Redirections[id].Priority) {
                 var nt = ResolveTarget(t, ref place_at_cursor);
-                var range_ok = ValidateRange(action, nt, place_at_cursor);
+                var range_ok = ValidateRange(upgraded, nt, place_at_cursor);
 
                 if (range_ok && (nt != null || place_at_cursor)) {
                     return nt;
@@ -264,9 +264,7 @@ namespace Redirect {
                 return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
             }
 
-            var adj_id = id;
-            var temp_id = ActionManager.fpGetAdjustedActionId((ActionManager*) this_ptr, id);
-            var original_res = Actions.GetRow(temp_id);
+            var original_res = Actions.GetRow(id)!;
 
             if(original_res != null && original_res.IsPvP) {
                 return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
@@ -277,14 +275,18 @@ namespace Redirect {
             origin = origin == 2 && Configuration.EnableMacroQueueing ? 0 : origin;
 
             // Actions placed on bars try to use their base action, so we need to get the upgraded version
-            
-            if(original_res != null && original_res.IsPlayerAction) {
-                adj_id = temp_id;
+
+            var temp_id = ActionManager.fpGetAdjustedActionId((ActionManager*) this_ptr, id);
+            var use_res = original_res!;
+
+            var adjusted_res = Actions.GetRow(temp_id)!;
+
+            if (adjusted_res.IsPlayerAction) {
+                use_res = adjusted_res!;
             }
 
-            var adj_res = Actions.GetRow(adj_id)!;
             bool place_at_cursor = false;
-            var new_target = RedirectTarget(adj_res, ref place_at_cursor);
+            var new_target = RedirectTarget(original_res, adjusted_res, ref place_at_cursor);
 
             // Ground targeting actions at the cursor
 
@@ -309,18 +311,18 @@ namespace Redirect {
                 bool[] results  = new bool[4];
 
                 fixed (bool* p = results) {
-                    GroundActionValid(this_ptr, adj_id, action_type, p);
+                    GroundActionValid(this_ptr, use_res.RowId, action_type, p);
                 }
 
                 Vector3 v;
                 bool[] results2 = new bool[4];
 
                 fixed (bool* p = results2) {
-                    bool success = GetGroundPlacement(this_ptr, adj_id, action_type, &v, p);
+                    bool success = GetGroundPlacement(this_ptr, use_res.RowId, action_type, &v, p);
                 }
 
                 if (results[1]) {
-                    return UseAction(this_ptr, action_type, id, target, &v, param);
+                    return UseAction(this_ptr, action_type, use_res.RowId, target, &v, param);
                 }
 
                 if(results[2]) {
@@ -337,13 +339,13 @@ namespace Redirect {
 
             if (new_target != null) {
 
-                if (!adj_res.TargetArea) {
-                    return TryActionHook.Original(this_ptr, action_type, id, new_target.ObjectId, param, origin, unk, location);
+                if (!use_res.TargetArea) {
+                    return TryActionHook.Original(this_ptr, action_type, use_res.RowId, new_target.ObjectId, param, origin, unk, location);
                 }
 
                 // Ground placed action at specific game object
 
-                var status = ActionManager.fpGetActionStatus((ActionManager*) this_ptr, action_type, id, (uint) target, 1, 1);
+                var status = ActionManager.fpGetActionStatus((ActionManager*) this_ptr, action_type, use_res.RowId, (uint) target, 1, 1);
 
                 if (status != 0 && status != 0x244) {
                     return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
@@ -357,14 +359,14 @@ namespace Redirect {
                         return false;
                     }
 
-                    return TryQueueAction(this_ptr, id, param, action_type, target);
+                    return TryQueueAction(this_ptr, use_res.RowId, param, action_type, target);
                 }
 
                 var result = ActionValid(id, ClientState.LocalPlayer!.Address, new_target.Address);
 
                 if (result == 0) {
                     var new_location = new_target.Position;
-                    return UseAction(this_ptr, action_type, id, new_target.ObjectId, &new_location);
+                    return UseAction(this_ptr, action_type, use_res.RowId, new_target.ObjectId, &new_location);
                 }
 
                 if(result == 0x236) {
