@@ -78,11 +78,17 @@ namespace Redirect {
                     }
 
                     if (friendly_mo) {
-                        ImGui.Dummy(new Vector2(2, -1));
+                        ImGui.Dummy(new Vector2(1, -1));
                         ImGui.SameLine();
                         bool friendly_mo_model = Configuration.DefaultModelMouseoverFriendly;
                         if (ImGui.Checkbox("Include friendly target models", ref friendly_mo_model)) {
                             Configuration.DefaultModelMouseoverFriendly = friendly_mo_model;
+                        }
+                        ImGui.Dummy(new Vector2(1, -1));
+                        ImGui.SameLine();
+                        bool cursor_mo = Configuration.DefaultCursorMouseover;
+                        if (ImGui.Checkbox("Include ground targets at cursor", ref cursor_mo)) {
+                            Configuration.DefaultCursorMouseover = cursor_mo;
                         }
                     }
 
@@ -92,7 +98,7 @@ namespace Redirect {
                     }
 
                     if (hostile_mo) {
-                        ImGui.Dummy(new Vector2(2, -1));
+                        ImGui.Dummy(new Vector2(1, -1));
                         ImGui.SameLine();
                         bool hostile_mo_model = Configuration.DefaultModelMouseoverHostile;
                         if (ImGui.Checkbox("Include hostile target models", ref hostile_mo_model)) {

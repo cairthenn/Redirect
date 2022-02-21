@@ -175,7 +175,7 @@ namespace Redirect {
                     else if (Configuration.DefaultModelMouseoverFriendly && TargetManager.MouseOverTarget != null && ValidateRange(upgraded, TargetManager.MouseOverTarget)) {
                         return TargetManager.MouseOverTarget;
                     }
-                    else if (upgraded.TargetArea && !upgraded.IsActionBlocked()) {
+                    else if (Configuration.DefaultCursorMouseover && upgraded.TargetArea && !upgraded.IsActionBlocked()) {
                         place_at_cursor = true;
                         return null;
                     }
