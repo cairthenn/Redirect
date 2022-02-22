@@ -225,6 +225,10 @@ namespace Redirect {
                     return TargetManager.Target;
                 case "Focus":
                     return TargetManager.FocusTarget;
+                case "Target of Target":
+                    return TargetManager.Target is { } ? TargetManager.Target.TargetObject : null;
+                case "Soft Target":
+                    return TargetManager.SoftTarget;
                 case "<2>":
                     return PartyMembers.Length > 1 ? PartyMembers[1]!.GameObject : null;
                 case "<3>":

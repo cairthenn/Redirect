@@ -20,7 +20,7 @@ namespace Redirect {
              25822, // "Astral Flow",
         };
         
-        public static readonly string[] TargetOptions = {"Cursor", "UI Mouseover", "Model Mouseover", "Target", "Focus", "Target of Target", "Self", "<2>", "<3>", "<4>", "<5>", "<6>", "<7>", "<8>"};
+        public static readonly string[] TargetOptions = {"Cursor", "UI Mouseover", "Model Mouseover", "Target", "Focus", "Target of Target", "Self", "Soft Target", "<2>", "<3>", "<4>", "<5>", "<6>", "<7>", "<8>"};
 
         public static bool UsableByJob(this Action a, Job j) {
             if(ActionBlocklist.Contains(a.RowId)) {
