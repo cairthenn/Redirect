@@ -19,7 +19,8 @@ namespace Redirect {
         private const string GroundActionCheckSig = "E8 ?? ?? ?? ?? 44 8B 83 ?? ?? ?? ?? 4C 8D 4C 24 60";
         private const string GetGroundPlacementSig = "E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4c 8B C3 48 8D 54";
 
-        private Configuration Configuration;
+        private Configuration Configuration { get; } = null!;
+        private Actions Actions { get; } = null!;
         private PartyList PartyMembers => Services.PartyMembers;
         private ClientState ClientState => Services.ClientState;
         private TargetManager TargetManager => Services.TargetManager;
@@ -48,8 +49,9 @@ namespace Redirect {
         private ActionValidDelegate ActionValid = null!;
         private volatile GameObject? CurrentUIMouseover = null!;
 
-        public GameHooks(Configuration config) {
+        public GameHooks(Configuration config, Actions actions) {
             Configuration = config;
+            Actions = actions;
 
             var uimo_ptr = SigScanner.ScanModule(UIMOSig);
             var actionres_ptr = SigScanner.ScanModule(ActionResourceSig);
@@ -112,7 +114,7 @@ namespace Redirect {
         public void UpdatePotionQueueing(bool enable) {
             var res = GetActionResource(0x34E);
             var type = enable ? ActionType.Ability : ActionType.General;
-            Dalamud.SafeMemory.Write(res + 0x20, (byte)type);
+            Dalamud.SafeMemory.Write(res + 0x20, (byte) type);
         }
 
         private bool TryQueueAction(IntPtr action_manager, uint id, uint param, ActionType action_type, ulong target_id) {
@@ -268,9 +270,9 @@ namespace Redirect {
                 return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
             }
 
-            var original_res = Actions.GetRow(id)!;
+            var original_res = Actions.GetRow(id);
 
-            if(original_res != null && original_res.IsPvP) {
+            if(original_res == null || original_res.IsPvP) {
                 return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
             }
 

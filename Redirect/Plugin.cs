@@ -4,7 +4,6 @@ using Dalamud.IoC;
 using Dalamud.Logging;
 using Dalamud.Plugin;
 using System;
-using System.Threading.Tasks;
 
 namespace Redirect {
     public class Plugin : IDalamudPlugin, IDisposable {
@@ -12,14 +11,17 @@ namespace Redirect {
         public string Name => "Redirect";
         private const string CommandName = "/redirect";
         private Configuration Configuration { get; set; }
-        private PluginUI PluginUi { get; set; }
+        private PluginUI PluginUi { get; } = null!;
+        private Actions Actions { get; } = null!;
+        private GameHooks Hooks { get; } = null!;
         public DalamudPluginInterface Interface => Services.Interface;
         public DataManager DataManager => Services.DataManager;
         public CommandManager CommandManager => Services.CommandManager;
-        private GameHooks Hooks;
+
 
         public Plugin([RequiredVersion("1.0")] DalamudPluginInterface i) {
             Services.Initialize(i);
+            
             try {
                 Configuration = Interface.GetPluginConfig() as Configuration ?? new Configuration();
             } 
@@ -28,14 +30,13 @@ namespace Redirect {
                 Configuration = new Configuration();
             }
 
-            Hooks = new GameHooks(Configuration);
-            PluginUi = new PluginUI(this, Configuration, Hooks);
+            Actions = new();
+            Hooks = new(Configuration, Actions);
+            PluginUi = new(this, Configuration, Hooks, Actions);
 
             CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand) {
                 HelpMessage = "Adjust targeting priority for any action"
             });
-
-            Task.Factory.StartNew(Actions.Initialize);
         }
 
         public void Dispose() {

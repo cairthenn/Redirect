@@ -15,7 +15,9 @@ namespace Redirect {
         private Plugin Plugin { get; } = null!;
         private Configuration Configuration { get; } = null!;
         private GameHooks GameHooks { get; } = null!;
-        private List<Lumina.Excel.GeneratedSheets.ClassJob> Jobs { get; } = null!;
+        private Actions Actions { get; } = null!;
+
+        private List<Lumina.Excel.GeneratedSheets.ClassJob> Jobs => Actions.GetJobInfo();
         private Dictionary<ushort, TextureWrap> Icons { get; } = new();
 
         internal bool MainWindowVisible = false;
@@ -23,17 +25,13 @@ namespace Redirect {
         private Lumina.Excel.GeneratedSheets.ClassJob SelectedJob = null!;
         private string search = string.Empty;
 
-        public PluginUI(Plugin plugin, Configuration config, GameHooks hooks) {
+        public PluginUI(Plugin plugin, Configuration config, GameHooks hooks, Actions actions) {
             Plugin = plugin;
             Configuration = config;
             GameHooks = hooks;
-
+            Actions = actions;
             Plugin.Interface.UiBuilder.Draw += Draw;
             Plugin.Interface.UiBuilder.OpenConfigUi += OnOpenConfig;
-
-            Jobs = Plugin.DataManager.GetExcelSheet<Lumina.Excel.GeneratedSheets.ClassJob>()!.
-                Where(j => j.Role > 0 && j.ItemSoulCrystal.Value?.RowId > 0).ToList();
-
         }
 
         private void OnOpenConfig() {
