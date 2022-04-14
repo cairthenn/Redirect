@@ -58,7 +58,7 @@ namespace Redirect {
             var groundaction_ptr = SigScanner.ScanModule(GroundActionCheckSig);
             var gp_ptr = SigScanner.ScanModule(GetGroundPlacementSig);
 
-            if (uimo_ptr == IntPtr.Zero || actionres_ptr == IntPtr.Zero || groundaction_ptr == IntPtr.Zero) {
+            if (uimo_ptr == IntPtr.Zero || actionres_ptr == IntPtr.Zero || groundaction_ptr == IntPtr.Zero || gp_ptr == IntPtr.Zero) {
                 PluginLog.Error("Error during game hook initialization, plugin functionality is disabled.");
                 return;
             }
