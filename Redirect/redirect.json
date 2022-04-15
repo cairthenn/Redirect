@@ -2,7 +2,7 @@
   "Author": "Cair",
   "Name": "Redirect",
   "Punchline": "Change where your actions are going, queue macros, queue sprint, and queue potions!",
-  "Description": "Allows you to customize target priorities for individual actions. Additionally, lets some actions enter the game's queue system that normally wouldn't. Type /redirect to configure.",
+  "Description": "Easily change the target priority for spells and abilities. Queue macros, sprint, and potions! Type /redirect to configure.",
   "InternalName": "Redirect",
   "RepoUrl": "https//github.com/cairthenn/Redirect",
   "ApplicableVersion": "any",
