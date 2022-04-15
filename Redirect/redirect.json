@@ -6,11 +6,8 @@
   "InternalName": "Redirect",
   "RepoUrl": "https//github.com/cairthenn/Redirect",
   "ApplicableVersion": "any",
-  "Tags": [
-    "redirect",
-    "action",
-    "cair",
-    "mouseover",
-    "macros"
+  "CategoryTags": [
+    "jobs",
+    "utility"
   ]
 }

@@ -10,7 +10,7 @@ namespace Redirect {
     class PluginUI : IDisposable {
         
         const uint ICON_SIZE = 32;
-        const uint MAX_REDIRECTS = 10;
+        const uint MAX_REDIRECTS = 12;
 
         private Plugin Plugin { get; } = null!;
         private Configuration Configuration { get; } = null!;

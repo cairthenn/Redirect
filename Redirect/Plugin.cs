@@ -24,9 +24,8 @@ namespace Redirect {
             
             try {
                 Configuration = Interface.GetPluginConfig() as Configuration ?? new Configuration();
-            } 
-            catch(Exception) {
-                PluginLog.Error("Failed to load plugin configuration.");
+            }  catch(Exception) {
+                PluginLog.Error("Failed to load plugin configuration. A new configuration file has been created.");
                 Configuration = new Configuration();
             }
 
@@ -35,7 +34,7 @@ namespace Redirect {
             PluginUi = new(this, Configuration, Hooks, Actions);
 
             CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand) {
-                HelpMessage = "Adjust targeting priority for any action"
+                HelpMessage = "Opens the configuration menu"
             });
         }
 

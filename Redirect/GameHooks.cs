@@ -177,7 +177,6 @@ namespace Redirect {
             return false;
         }
 
-
         private GameObject? RedirectTarget(Lumina.Excel.GeneratedSheets.Action original, Lumina.Excel.GeneratedSheets.Action upgraded, ref bool place_at_cursor) {
 
             var id = original.RowId;
