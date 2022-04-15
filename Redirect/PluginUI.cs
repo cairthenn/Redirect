@@ -62,7 +62,7 @@ namespace Redirect {
             if (ImGui.BeginMenuBar()) {
                 if (ImGui.BeginMenu("Options")) {
 
-                    ImGui.Text("Target changing options:");
+                    ImGui.Text("Target redirection options:");
 
                     ImGui.Dummy(new Vector2(-1, 1));
 
