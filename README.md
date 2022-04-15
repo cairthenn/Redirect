@@ -10,7 +10,7 @@ Additionally, it enables action queueing for things that the game normally won't
 
 ### How do I install it?
 
-This plugin is currently available through the Dalamud plugin installer *only if* testing mode is enabled. Otherwise, the easiest way is to follow the instructions at my [custom plugin repository](https://github.com/cairthenn/CairDalamudPlugins).
+This plugin is currently available through the Dalamud plugin installer. If you are having trouble installing it, I also maintain a mirror at my [custom plugin repository](https://github.com/cairthenn/CairDalamudPlugins).
 
 ### Commands
 
