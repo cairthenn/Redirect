@@ -24,6 +24,7 @@ namespace Redirect {
         private bool SelectedRoleActions = false;
         private Lumina.Excel.GeneratedSheets.ClassJob SelectedJob = null!;
         private string search = string.Empty;
+        private readonly string[] TargetOptions = { "Cursor", "UI Mouseover", "Model Mouseover", "Target", "Focus", "Target of Target", "Self", "Soft Target", "<2>", "<3>", "<4>", "<5>", "<6>", "<7>", "<8>" };
 
         public PluginUI(Plugin plugin, Configuration config, GameHooks hooks, Actions actions) {
             Plugin = plugin;
@@ -279,16 +280,16 @@ namespace Redirect {
 
                         if (ImGui.BeginCombo($"##redirection-{action.RowId}-{i}", redirection[i])) {
 
-                            for (int j = 0; j < Util.TargetOptions.Length; j++) {
+                            for (int j = 0; j < TargetOptions.Length; j++) {
                                
-                                if(Util.TargetOptions[j] == "Cursor" && !action.TargetArea) {
+                                if(TargetOptions[j] == "Cursor" && !action.TargetArea) {
                                     continue;
                                 }
 
-                                bool is_selected = (Util.TargetOptions[j] == redirection[i]);
+                                bool is_selected = (TargetOptions[j] == redirection[i]);
 
-                                if (ImGui.Selectable(Util.TargetOptions[j], is_selected)) {
-                                    redirection[i] = Util.TargetOptions[j];
+                                if (ImGui.Selectable(TargetOptions[j], is_selected)) {
+                                    redirection[i] = TargetOptions[j];
                                     save = true;
                                 }
 

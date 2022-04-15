@@ -1,10 +1,11 @@
-﻿using Lumina.Data;
+﻿using System.Resources;
 using Lumina.Excel.GeneratedSheets;
 using System.Collections.Generic;
+using System.ComponentModel;
 
 namespace Redirect {
 
-    static class Util {
+    static class ExtensionMethods {
 
         private static readonly HashSet<uint> ActionBlocklist = new() {
             // These don't work anyway, but they're technically "ground target" placement so they get thrown in
@@ -17,9 +18,6 @@ namespace Redirect {
             17055, // "Play",
             25822, // "Astral Flow",
         };
-
-
-        public static readonly string[] TargetOptions = {"Cursor", "UI Mouseover", "Model Mouseover", "Target", "Focus", "Target of Target", "Self", "Soft Target", "<2>", "<3>", "<4>", "<5>", "<6>", "<7>", "<8>"};
 
         public static bool IsActionAllowed(this Action a) {
             return ActionAllowlist.Contains(a.RowId);
