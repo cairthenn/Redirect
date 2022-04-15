@@ -160,6 +160,23 @@ namespace Redirect {
             return ActionValid(action.RowId, ClientState.LocalPlayer!.Address, target!.Address) == 0;
         }
 
+        private bool ValidateTargetType(Lumina.Excel.GeneratedSheets.Action action, GameObject? target, bool place_at_cursor = false) {
+            
+            if(!Configuration.SilentTargetTypeFailure || place_at_cursor) {
+                return true;
+            } else if(target == null) {
+                return false;
+            }
+
+            if(target.ObjectKind == Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player && action.CanTargetFriendly()) {
+                return true;
+            } else if(target.ObjectKind == Dalamud.Game.ClientState.Objects.Enums.ObjectKind.BattleNpc && action.CanTargetHostile) {
+                return true;
+            }
+
+            return false;
+        }
+
 
         private GameObject? RedirectTarget(Lumina.Excel.GeneratedSheets.Action original, Lumina.Excel.GeneratedSheets.Action upgraded, ref bool place_at_cursor) {
 
@@ -171,10 +188,11 @@ namespace Redirect {
                 
                 if(Configuration.DefaultMouseoverFriendly && upgraded.CanTargetFriendly()) {
                     
-                    if (CurrentUIMouseover != null && ValidateRange(upgraded, CurrentUIMouseover)) {
+                    if (CurrentUIMouseover != null && ValidateRange(upgraded, CurrentUIMouseover) && ValidateTargetType(upgraded, CurrentUIMouseover)) {
                         return CurrentUIMouseover;
                     }
-                    else if (Configuration.DefaultModelMouseoverFriendly && TargetManager.MouseOverTarget != null && ValidateRange(upgraded, TargetManager.MouseOverTarget)) {
+                    else if (Configuration.DefaultModelMouseoverFriendly && TargetManager.MouseOverTarget != null && 
+                        ValidateRange(upgraded, TargetManager.MouseOverTarget) && ValidateTargetType(upgraded, TargetManager.MouseOverTarget)) {
                         return TargetManager.MouseOverTarget;
                     }
                     else if (Configuration.DefaultCursorMouseover && upgraded.TargetArea && !upgraded.IsActionBlocked()) {
@@ -184,10 +202,11 @@ namespace Redirect {
                 }
                 else if(Configuration.DefaultMouseoverHostile && upgraded.CanTargetHostile) {
 
-                    if (CurrentUIMouseover != null && ValidateRange(upgraded, CurrentUIMouseover)) {
+                    if (CurrentUIMouseover != null && ValidateRange(upgraded, CurrentUIMouseover) && ValidateTargetType(upgraded, CurrentUIMouseover)) {
                         return CurrentUIMouseover;
                     }
-                    else if (Configuration.DefaultModelMouseoverHostile && ValidateRange(upgraded, TargetManager.MouseOverTarget)) {
+                    else if (Configuration.DefaultModelMouseoverHostile && ValidateRange(upgraded, TargetManager.MouseOverTarget) && 
+                        ValidateTargetType(upgraded, TargetManager.MouseOverTarget)) {
                         return TargetManager.MouseOverTarget;
                     }
                 }
@@ -200,8 +219,9 @@ namespace Redirect {
             foreach (var t in Configuration.Redirections[id].Priority) {
                 var nt = ResolveTarget(t, ref place_at_cursor);
                 var range_ok = ValidateRange(upgraded, nt, place_at_cursor);
+                var tt_ok = ValidateTargetType(upgraded, nt, place_at_cursor);
 
-                if (range_ok && (nt != null || place_at_cursor)) {
+                if (range_ok && tt_ok && (nt != null || place_at_cursor)) {
                     return nt;
                 }
             };

@@ -62,13 +62,18 @@ namespace Redirect {
             if (ImGui.BeginMenuBar()) {
                 if (ImGui.BeginMenu("Options")) {
 
-                    ImGui.Text("Global settings:");
+                    ImGui.Text("Target changing options:");
 
                     ImGui.Dummy(new Vector2(-1, 1));
 
                     bool range_fail = Configuration.SilentRangeFailure;
-                    if (ImGui.Checkbox("Skip targets out of range", ref range_fail)) {
+                    if (ImGui.Checkbox("Ignore targets out of range", ref range_fail)) {
                         Configuration.SilentRangeFailure = range_fail;
+                    }
+
+                    bool tt_fail = Configuration.SilentTargetTypeFailure;
+                    if (ImGui.Checkbox("Ignore incorrect target types", ref tt_fail)) {
+                        Configuration.SilentTargetTypeFailure = tt_fail;
                     }
 
                     bool friendly_mo = Configuration.DefaultMouseoverFriendly;
