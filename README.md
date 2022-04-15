@@ -28,7 +28,7 @@ These options let you control how Redirect handles target changing:
 
 These options allow additional things to enter the combat queue, avoiding "clipping" the GCD:
 
-* `Ground targeted actions` : Lets you place ground actions while casting. This must be used in conjunction with a target changing option -- the orange ground targeting circle will *not* appear
+* `Ground targeted actions` : Lets you queue ground actions while casting. This must be used in conjunction with a target changing option -- the orange ground targeting circle will *not* appear
 * `Actions from macros` : Prevents GCD clipping from macro actions
 * `Sprint` : Zoom even easier
 * `Potions` : Includes various stat potions and elixirs. Does **not** include food
