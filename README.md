@@ -16,31 +16,24 @@ This plugin is currently available through the Dalamud plugin installer *only if
 
 This plugin has a single command, `/redirect`, that opens the configuration. In addition to the standard configuration, there is an options menu that provides some additional features.
 
-### About macro queueing
+### Options menu
 
-This plugin allows you to "queue" actions using macros as you normally would be able to via the action bar. This does not bypass the game's queue system or allow you to queue multiple things at the same time. It does, however, allow you to create priority-based macros or macros that use custom targeting without worrying about clipping.
+These options let you control how Redirect handles target changing:
 
-For example, you can create a Raise macro that will always try to use Swiftcast and then Raise your moused-over target:
+* `Ignore targets out of range` : Incurs a distance check on potential target changes. If the action is redirected to a target out of range, that target is ignored, and the next choice will be attempted
+* `Ignore incorrect target types`: Incurs a target type check on potential target changes. Prevents trying to use friendly spells on hostile targets and vice versa
+* `Treat all <friendly/hostile> actions as mouseovers` : Treats all actions of the specified type as UI mouseover candidates by default
+  * `Include <friendly/hostile> target models` : Treats all actions of the specified type as model mouseover candidates as well
+  * `Include ground targets at cursor` : All actions that use cursor placement (Asylum, Earthly Star, Sacred Soil) will be instantly placed at the mouse cursor
 
-```
-/macroicon Raise
-/ac Swiftcast
-/ac Raise <mo>
-```
+These options allow additional things to enter the combat queue, avoiding "clipping" the GCD:
 
-Normally, if you try to use this macro while casting, nothing will happen. With macro queueing enabled, it will try to queue Swiftcast, and if it isn't available, it will try to queue Raise.
+* `Ground targeted actions` : Lets you place ground actions while casting. This must be used in conjunction with a target changing option -- the orange ground targeting circle will *not* appear
+* `Actions from macros` : Prevents GCD clipping from macro actions
+* `Sprint` : Zoom even easier
+* `Potions` : Includes various stat potions and elixirs. Does **not** include food
 
-Note that if you also have custom action targeting enabled in the configuration, it will override your macro's intended target. However, this system allows you to completely avoid the configuration step altogether and simply play using normal ingame macros that now work as though they were action bar abilities!
-
-**Notice**: This is not setup to allow you to create one-button macros that will play the game for you, and actually explicitly prevents it. If you use a macro that has multiple actions that can succeed while you are not casting, it will use the first one immediately *and* queue the second one. This is the intended behavior.
-
-### About sprint and potion queueing
-
-There are options that let both Sprint and combat potions queue up like normal abilities. Each option is configurable separately. Certain items, like food, are simply not meant to enter the queue and will not be supported.
-
-### Global configuration
-
-If you're simply looking for mouseover functionality, there are some options provided that allow you to default *all friendly* and *all hostile* actions to UI Mouseover behavior. If this isn't your cup of tea, you can also configure each action individually, as described below.
+## FAQ
 
 ### How do I setup a UI mouseover?
 
@@ -65,13 +58,28 @@ The following are currently supported options:
 
 The final target is selected based on a priority system from top to bottom. Once a match is made, that target will be used and anything below it will be ignored. If no match is made, the default target for the action will be attempted.
 
-### What actions are supported?
+### Why are lower level versions of spells listed? Can you combine them?
 
-Just about anything you can use on a different target or place on the ground is supported. This excludes things like Lost Actions, or any Duty Action. If you think an action should be supported and isn't, feel free to create an issue.
+This is primarily due to the way the action bar handles upgrading spells automatically for synced content. While it is technically possible to combine them, there may be situations where this behavior is undesirable and will be left as is for now. 
 
-### Why do SCH/SMN have [...]?
+### About macro queueing
 
-Arcanist is weird.
+This plugin allows you to "queue" actions using macros as you normally would be able to via the action bar. This does not bypass the game's queue system or allow you to queue multiple things at the same time. It does, however, allow you to create priority-based macros or macros that use custom targeting without worrying about clipping.
+
+For example, you can create a Raise macro that will always try to use Swiftcast and then Raise your moused-over target:
+
+```
+/macroicon Raise
+/ac Swiftcast
+/ac Raise <mo>
+```
+
+Normally, if you try to use this macro while casting, nothing will happen. With macro queueing enabled, it will try to queue Swiftcast, and if it isn't available, it will try to queue Raise.
+
+Note that if you also have custom action targeting enabled in the configuration, it will override your macro's intended target. However, this system allows you to completely avoid the configuration step altogether and simply play using normal ingame macros that now work as though they were action bar abilities!
+
+**Notice**: This is not setup to allow you to create one-button macros that will play the game for you, and actually explicitly prevents it. If you use a macro that has multiple actions that can succeed while you are not casting, it will use the first one immediately *and* queue the second one. This is the intended behavior.
+
 
 ### I have a different problem / I want to suggest something!
 
