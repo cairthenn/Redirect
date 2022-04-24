@@ -157,7 +157,9 @@ namespace Redirect {
                 }
             }
 
-            return ActionValid(action.RowId, ClientState.LocalPlayer!.Address, target!.Address) == 0;
+            var result = ActionValid(action.RowId, ClientState.LocalPlayer!.Address, target!.Address);
+
+            return result == 0 || (result == 565 && target.YalmDistanceX <= action.Range);
         }
 
         private bool ValidateTargetType(Lumina.Excel.GeneratedSheets.Action action, GameObject? target, bool place_at_cursor = false) {
