@@ -159,7 +159,7 @@ namespace Redirect {
 
             var result = ActionValid(action.RowId, ClientState.LocalPlayer!.Address, target!.Address);
 
-            return result == 0 || (result == 565 && target.YalmDistanceX <= action.Range);
+            return result == 0 || result == 565;
         }
 
         private bool ValidateTargetType(Lumina.Excel.GeneratedSheets.Action action, GameObject? target, bool place_at_cursor = false) {
