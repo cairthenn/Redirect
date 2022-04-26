@@ -318,7 +318,7 @@ namespace Redirect {
             // Ground targeting actions at the cursor
 
             if (place_at_cursor) {
-                var status = ActionManager.fpGetActionStatus((ActionManager*) this_ptr, action_type, id, (uint) target, 1, 1);
+                var status = ActionManager.fpGetActionStatus((ActionManager*) this_ptr, action_type, id, (long) target, 1, 1);
 
                 if (status != 0 && status != 0x244) {
                     return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
@@ -372,7 +372,7 @@ namespace Redirect {
 
                 // Ground placed action at specific game object
 
-                var status = ActionManager.fpGetActionStatus((ActionManager*) this_ptr, action_type, use_res.RowId, (uint) target, 1, 1);
+                var status = ActionManager.fpGetActionStatus((ActionManager*) this_ptr, action_type, use_res.RowId, (long) target, 1, 1);
 
                 if (status != 0 && status != 0x244) {
                     return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
