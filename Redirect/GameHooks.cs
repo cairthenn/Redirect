@@ -20,10 +20,10 @@ namespace Redirect {
             OK, RANGE, INVALID
         }
 
-        private static Dictionary<CursorStatus, string> CursorErrorToasts = new() {
-            { CursorStatus.OK, "Something has gone terribly wrong."},
-            { CursorStatus.RANGE, "Target is not in range."},
-            { CursorStatus.INVALID, "Invalid target."},
+        private static readonly Dictionary<CursorStatus, string> CursorErrorToasts = new() {
+            { CursorStatus.OK, "Something has gone terribly wrong." },
+            { CursorStatus.RANGE, "Target is not in range." },
+            { CursorStatus.INVALID, "Invalid target." },
         };
 
         private const string UIMOSig = "E8 ?? ?? ?? ?? 48 8B 6C 24 58 48 8B 5C 24 50 4C 8B 7C";
@@ -33,11 +33,11 @@ namespace Redirect {
 
         private Configuration Configuration { get; } = null!;
         private Actions Actions { get; } = null!;
-        private PartyList PartyMembers => Services.PartyMembers;
-        private ClientState ClientState => Services.ClientState;
-        private TargetManager TargetManager => Services.TargetManager;
-        private SigScanner SigScanner => Services.SigScanner;
-        private ToastGui ToastGui => Services.ToastGui;
+        private static PartyList PartyMembers => Services.PartyMembers;
+        private static ClientState ClientState => Services.ClientState;
+        private static TargetManager TargetManager => Services.TargetManager;
+        private static SigScanner SigScanner => Services.SigScanner;
+        private static ToastGui ToastGui => Services.ToastGui;
 
         // param is the same in both functions,
         // 65535 can be observed for older food,
@@ -50,13 +50,12 @@ namespace Redirect {
         private unsafe delegate bool GetGroundPlacementDelegate(IntPtr tp, uint id, ActionType t, float* where, ulong* results);
         private delegate IntPtr GetActionRowPtrDelegate(int id);
         private delegate void MouseoverEntityDelegate(IntPtr t, IntPtr entity);
-
-        private Hook<TryActionDelegate> TryActionHook = null!;
-        private Hook<MouseoverEntityDelegate> MouseoverHook = null!;
-        private UseActionDelegate UseAction = null!;
-        private GetActionRowPtrDelegate GetActionRowPtr = null!;
-        private GroundActionValidDelegate GroundActionValid = null!;
-        private GetGroundPlacementDelegate GetGroundPlacement = null!;
+        private readonly Hook<TryActionDelegate> TryActionHook = null!;
+        private readonly Hook<MouseoverEntityDelegate> MouseoverHook = null!;
+        private readonly UseActionDelegate UseAction = null!;
+        private readonly GetActionRowPtrDelegate GetActionRowPtr = null!;
+        private readonly GroundActionValidDelegate GroundActionValid = null!;
+        private readonly GetGroundPlacementDelegate GetGroundPlacement = null!;
         private volatile GameObject? CurrentUIMouseover = null!;
 
         public GameHooks(Configuration config, Actions actions) {
@@ -91,8 +90,8 @@ namespace Redirect {
             MouseoverHook = new Hook<MouseoverEntityDelegate>(uimo_hook_ptr, OnMouseoverEntityCallback);
 
             unsafe {
-                TryActionHook = new Hook<TryActionDelegate>((IntPtr) ActionManager.fpUseAction, TryActionCallback);
-                UseAction = Marshal.GetDelegateForFunctionPointer<UseActionDelegate>((IntPtr) ActionManager.fpUseActionLocation);
+                TryActionHook = new Hook<TryActionDelegate>((IntPtr)ActionManager.fpUseAction, TryActionCallback);
+                UseAction = Marshal.GetDelegateForFunctionPointer<UseActionDelegate>((IntPtr)ActionManager.fpUseActionLocation);
             }
 
             UpdateSprintQueueing(Configuration.QueueSprint);
@@ -117,16 +116,16 @@ namespace Redirect {
         public void UpdateSprintQueueing(bool enable) {
             var row = GetActionRowPtr(3);
             var type = enable ? ActionType.Ability : ActionType.MainCommand;
-            Dalamud.SafeMemory.Write(row + 0x20, (byte) type);
+            Dalamud.SafeMemory.Write(row + 0x20, (byte)type);
         }
 
         public void UpdatePotionQueueing(bool enable) {
             var row = GetActionRowPtr(846);
             var type = enable ? ActionType.Ability : ActionType.General;
-            Dalamud.SafeMemory.Write(row + 0x20, (byte) type);
+            Dalamud.SafeMemory.Write(row + 0x20, (byte)type);
         }
 
-        private bool TryQueueAction(IntPtr action_manager, uint id, uint param, ActionType action_type, ulong target_id) {
+        private static bool TryQueueAction(IntPtr action_manager, uint id, uint param, ActionType action_type, ulong target_id) {
             Dalamud.SafeMemory.Read(action_manager + 0x68, out int queue_full);
 
             if (queue_full > 0) {
@@ -138,7 +137,7 @@ namespace Redirect {
             // within the ActionManager during the call
 
             Dalamud.SafeMemory.Write(action_manager + 0x68, 1);
-            Dalamud.SafeMemory.Write(action_manager + 0x6C, (byte) action_type);
+            Dalamud.SafeMemory.Write(action_manager + 0x6C, (byte)action_type);
             Dalamud.SafeMemory.Write(action_manager + 0x70, id);
             Dalamud.SafeMemory.Write(action_manager + 0x78, target_id);
             Dalamud.SafeMemory.Write(action_manager + 0x80, 0); // "Origin", for whatever reason
@@ -152,10 +151,11 @@ namespace Redirect {
                 fixed (bool* p = results) {
                     GroundActionValid(action_manager, action.RowId, ActionType.Spell, p);
                 }
-                
-                if(results[0] && results[1]) {
+
+                if (results[0] && results[1]) {
                     return CursorStatus.OK;
-                } else if(results[2]) {
+                }
+                else if (results[2]) {
                     return CursorStatus.RANGE;
                 }
 
@@ -163,73 +163,25 @@ namespace Redirect {
             }
         }
 
-        private bool ActionTargetValid(uint id, GameObject target, out uint err) {
-
-            if (ClientState.LocalPlayer is not { } player) {
-                err = 0;
-                return false;
-            }
-
-            unsafe {
-                var player_ptr = (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)player.Address;
-                var target_ptr = (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)target.Address;
-                err = ActionManager.fpGetActionInRangeOrLoS(id, player_ptr, target_ptr);
-            }
-
-            // 0 success, 562 no LOS, 566 range, 565 not facing
-            // TODO: Check "auto face" option instead of assuming it is on
-            return err == 0 || err == 565;
-        }
-
-        private bool ValidateTargetType(Lumina.Excel.GeneratedSheets.Action action, GameObject target) {
-
-            switch(target.ObjectKind) {
-                case ObjectKind.BattleNpc:
-                    BattleNpc npc = (BattleNpc)target;
-                    return npc.BattleNpcKind == BattleNpcSubKind.Enemy ? action.CanTargetHostile : action.CanTargetFriendly();
-                case ObjectKind.Player:
-                case ObjectKind.Companion:
-                    return action.CanTargetFriendly();
-                default:
-                    return false;
-            }
-        }
-        
         // TODO: No more strings .. requires config rework because I am big dumb
         public GameObject? ResolveTarget(string target) {
-
-            switch (target) {
-                case "UI Mouseover":
-                    return CurrentUIMouseover;
-                case "Model Mouseover":
-                    return TargetManager.MouseOverTarget;
-                case "Self":
-                    return ClientState.LocalPlayer;
-                case "Target":
-                    return TargetManager.Target;
-                case "Focus":
-                    return TargetManager.FocusTarget;
-                case "Target of Target":
-                    return TargetManager.Target is { } ? TargetManager.Target.TargetObject : null;
-                case "Soft Target":
-                    return TargetManager.SoftTarget;
-                case "<2>":
-                    return PartyMembers.Length > 1 ? PartyMembers[1]!.GameObject : null;
-                case "<3>":
-                    return PartyMembers.Length > 2 ? PartyMembers[2]!.GameObject : null;
-                case "<4>":
-                    return PartyMembers.Length > 3 ? PartyMembers[3]!.GameObject : null;
-                case "<5>":
-                    return PartyMembers.Length > 4 ? PartyMembers[4]!.GameObject : null;
-                case "<6>":
-                    return PartyMembers.Length > 5 ? PartyMembers[5]!.GameObject : null;
-                case "<7>":
-                    return PartyMembers.Length > 6 ? PartyMembers[6]!.GameObject : null;
-                case "<8>":
-                    return PartyMembers.Length > 7 ? PartyMembers[7]!.GameObject : null;
-                default:
-                    return null;
-            }
+            return target switch {
+                "UI Mouseover" => CurrentUIMouseover,
+                "Model Mouseover" => TargetManager.MouseOverTarget,
+                "Self" => ClientState.LocalPlayer,
+                "Target" => TargetManager.Target,
+                "Focus" => TargetManager.FocusTarget,
+                "Target of Target" => TargetManager.Target is { } ? TargetManager.Target.TargetObject : null,
+                "Soft Target" => TargetManager.SoftTarget,
+                "<2>" => PartyMembers.Length > 1 ? PartyMembers[1]!.GameObject : null,
+                "<3>" => PartyMembers.Length > 2 ? PartyMembers[2]!.GameObject : null,
+                "<4>" => PartyMembers.Length > 3 ? PartyMembers[3]!.GameObject : null,
+                "<5>" => PartyMembers.Length > 4 ? PartyMembers[4]!.GameObject : null,
+                "<6>" => PartyMembers.Length > 5 ? PartyMembers[5]!.GameObject : null,
+                "<7>" => PartyMembers.Length > 6 ? PartyMembers[6]!.GameObject : null,
+                "<8>" => PartyMembers.Length > 7 ? PartyMembers[7]!.GameObject : null,
+                _ => null,
+            };
         }
 
         private unsafe bool TryActionCallback(IntPtr action_manager, ActionType type, uint id, ulong target, uint param, uint origin, uint unk, void* location) {
@@ -291,20 +243,23 @@ namespace Redirect {
                         cursor_status = ValidateCursorPlacement(action_manager, adjusted_row);
                         if (cursor_status == CursorStatus.OK) {
                             return GroundActionAtCursor(action_manager, type, id, target, param, origin, unk, location);
-                        } else if (Configuration.StopFirstMatch) {
+                        }
+                        else if (Configuration.StopFirstMatch) {
                             break;
                         }
-                    } else {
+                    }
+                    else {
                         GameObject? nt = ResolveTarget(t);
                         if (nt is not null) {
-                            bool ok = ActionTargetValid(adjusted_row.RowId, nt, out var err);
-                            bool tt_ok = ValidateTargetType(adjusted_row, nt);
+                            bool ok = adjusted_row.TargetInRangeAndLOS(nt, out var err);
+                            bool tt_ok = adjusted_row.TargetTypeValid(nt);
                             if (ok && tt_ok) {
                                 if (adjusted_row.TargetArea) {
                                     return GroundActionAtTarget(action_manager, type, id, nt, param, origin, unk, location);
                                 }
                                 return TryActionHook.Original(action_manager, type, id, nt.ObjectId, param, origin, unk, location);
-                            } else if (Configuration.StopFirstMatch) {
+                            }
+                            else if (Configuration.StopFirstMatch) {
                                 switch (err) {
                                     case 566:
                                         ToastGui.ShowError("Target not in line of sight.");
@@ -320,53 +275,58 @@ namespace Redirect {
                     }
                 }
 
-                if(adjusted_row.TargetArea && suppress_target_ring) {
+                if (adjusted_row.TargetArea && suppress_target_ring) {
                     ToastGui.ShowError(CursorErrorToasts[cursor_status]);
                     return false;
                 }
 
                 return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
 
-            } else if(adjusted_row.HasOptionalTargeting()) {
+            }
+            else if (adjusted_row.HasOptionalTargeting()) {
                 GameObject? nt = null;
                 var friendly = adjusted_row.CanTargetFriendly();
                 var hostile = adjusted_row.CanTargetHostile && !friendly;
-                var mo = friendly ? Configuration.DefaultMouseoverFriendly : hostile ? Configuration.DefaultMouseoverHostile : false;
-                var model_mo = friendly && mo ? Configuration.DefaultModelMouseoverFriendly : hostile && mo ? Configuration.DefaultModelMouseoverHostile : false;
+                var mo = friendly ? Configuration.DefaultMouseoverFriendly : hostile && Configuration.DefaultMouseoverHostile;
+                var model_mo = friendly && mo ? Configuration.DefaultModelMouseoverFriendly : hostile && mo && Configuration.DefaultModelMouseoverHostile;
 
-                if(CurrentUIMouseover is not null && mo) {
-                    bool ok = ActionTargetValid(adjusted_row.RowId, CurrentUIMouseover, out var err);
-                    bool tt_ok = ValidateTargetType(adjusted_row, CurrentUIMouseover);
+                if (CurrentUIMouseover is not null && mo) {
+                    bool ok = adjusted_row.TargetInRangeAndLOS(CurrentUIMouseover, out var err);
+                    bool tt_ok = adjusted_row.TargetTypeValid(CurrentUIMouseover);
                     if (ok && tt_ok) {
                         nt = CurrentUIMouseover;
-                    } else if(Configuration.StopFirstMatch) {
+                    }
+                    else if (Configuration.StopFirstMatch) {
                         ToastGui.ShowError(ok ? "Invalid target." : "Target is not in range.");
                         return false;
                     }
-                } else if(TargetManager.MouseOverTarget is not null && model_mo) {
-                    bool ok = ActionTargetValid(adjusted_row.RowId, TargetManager.MouseOverTarget, out var err);
-                    bool tt_ok = ValidateTargetType(adjusted_row, TargetManager.MouseOverTarget);
+                }
+                else if (TargetManager.MouseOverTarget is not null && model_mo) {
+                    bool ok = adjusted_row.TargetInRangeAndLOS(TargetManager.MouseOverTarget, out var err);
+                    bool tt_ok = adjusted_row.TargetTypeValid(TargetManager.MouseOverTarget);
                     if (ok && tt_ok) {
                         nt = TargetManager.MouseOverTarget;
-                    } else if (Configuration.StopFirstMatch) {
+                    }
+                    else if (Configuration.StopFirstMatch) {
                         ToastGui.ShowError(ok ? "Invalid target." : "Target is not in range.");
                         return false;
                     }
                 }
 
                 if (nt is not null) {
-                    if(adjusted_row.TargetArea) {
+                    if (adjusted_row.TargetArea) {
                         return GroundActionAtTarget(action_manager, type, id, nt, param, origin, unk, location);
                     }
 
                     return TryActionHook.Original(action_manager, type, id, nt.ObjectId, param, origin, unk, location);
                 }
 
-                if(Configuration.DefaultCursorMouseover && adjusted_row.TargetArea && !adjusted_row.IsActionBlocked()) {
+                if (Configuration.DefaultCursorMouseover && adjusted_row.TargetArea && !adjusted_row.IsActionBlocked()) {
                     CursorStatus cs = ValidateCursorPlacement(action_manager, adjusted_row);
                     if (cs == CursorStatus.OK) {
                         return GroundActionAtCursor(action_manager, type, id, target, param, origin, unk, location);
-                    } else {
+                    }
+                    else {
                         ToastGui.ShowError(CursorErrorToasts[cs]);
                         return false;
                     }
@@ -414,7 +374,7 @@ namespace Redirect {
             }
 
             Dalamud.SafeMemory.Read(action_manager + 0x08, out float animation_timer);
-            
+
             if (status == 0x244 || animation_timer > 0) {
                 if (!Configuration.QueueGroundActions) {
                     ToastGui.ShowError("Cannot use while casting.");

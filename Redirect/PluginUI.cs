@@ -8,7 +8,7 @@ using Dalamud.Interface;
 
 namespace Redirect {
     class PluginUI : IDisposable {
-        
+
         const uint ICON_SIZE = 32;
         const uint MAX_REDIRECTS = 12;
 
@@ -42,7 +42,7 @@ namespace Redirect {
         public void Dispose() {
             Plugin.Interface.UiBuilder.OpenConfigUi -= OnOpenConfig;
             Plugin.Interface.UiBuilder.Draw -= Draw;
-            foreach(var icon in Icons.Values) {
+            foreach (var icon in Icons.Values) {
                 icon.Dispose();
             }
         }
@@ -122,7 +122,7 @@ namespace Redirect {
 
                     bool sprint_queue = Configuration.QueueSprint;
                     if (ImGui.Checkbox("Sprint", ref sprint_queue)) {
-                        if(sprint_queue != Configuration.QueueSprint) {
+                        if (sprint_queue != Configuration.QueueSprint) {
                             GameHooks.UpdateSprintQueueing(sprint_queue);
                             Configuration.QueueSprint = sprint_queue;
                         }
@@ -144,26 +144,26 @@ namespace Redirect {
 
             ImGui.Dummy(new Vector2(ImGui.GetContentRegionAvail().X * 0.05f, -1));
 
-            if (ImGui.BeginChild("abilities", new Vector2(ImGui.GetContentRegionAvail().X * 0.20f, -1))) {        
-                    
-                    if (ImGui.Selectable(" Role Actions", SelectedRoleActions)) {
-                        SelectedRoleActions = true;
-                        SelectedJob = null!;
-                    }
+            if (ImGui.BeginChild("abilities", new Vector2(ImGui.GetContentRegionAvail().X * 0.20f, -1))) {
 
-                    foreach (var job in Jobs) { 
-                        if (ImGui.Selectable($" {job.Abbreviation}", SelectedJob == job)) {
-                            SelectedJob = job;
-                            SelectedRoleActions = false;
-                        }
+                if (ImGui.Selectable(" Role Actions", SelectedRoleActions)) {
+                    SelectedRoleActions = true;
+                    SelectedJob = null!;
+                }
+
+                foreach (var job in Jobs) {
+                    if (ImGui.Selectable($" {job.Abbreviation}", SelectedJob == job)) {
+                        SelectedJob = job;
+                        SelectedRoleActions = false;
                     }
+                }
 
                 ImGui.EndChild();
             }
 
             ImGui.SameLine();
 
-            if(ImGui.BeginChild("ability-view", new Vector2(-1, -1))) {
+            if (ImGui.BeginChild("ability-view", new Vector2(-1, -1))) {
                 DrawActions();
                 ImGui.EndChild();
             }
@@ -173,10 +173,10 @@ namespace Redirect {
 
         private TextureWrap? FetchTexture(ushort id) {
             Icons.TryGetValue(id, out TextureWrap? texture);
-            
-            if(texture is null && id > 0) {
+
+            if (texture is null && id > 0) {
                 texture = Plugin.DataManager.GetImGuiTextureIcon(id);
-                if(texture is not null) { 
+                if (texture is not null) {
                     Icons[id] = texture;
                 }
             }
@@ -187,7 +187,7 @@ namespace Redirect {
         private void DrawIcon(ushort id, Vector2 size = default) {
             var texture = FetchTexture(id);
 
-            if(texture is null) {
+            if (texture is null) {
                 return;
             }
 
@@ -232,10 +232,10 @@ namespace Redirect {
 
                     return true;
                 });
- 
 
-                foreach(var action in filtered) {
-                    
+
+                foreach (var action in filtered) {
+
                     var dims = new Vector2(ICON_SIZE);
 
                     // ICON
@@ -257,12 +257,12 @@ namespace Redirect {
 
                     Configuration.Redirections.TryGetValue(action.RowId, out var redirection);
 
-                    redirection = redirection ?? new() { ID = action.RowId };
+                    redirection ??= new() { ID = action.RowId };
 
                     // TODO: Disable the button? Why isn't this possible
 
                     if (ImGui.Button($"{FontAwesomeIcon.PlusCircle.ToIconString()}##-{action.RowId}")) {
-                        if(redirection.Count < MAX_REDIRECTS) {
+                        if (redirection.Count < MAX_REDIRECTS) {
                             redirection.Priority.Add(Configuration.DefaultRedirection);
                             save = true;
                         }
@@ -273,15 +273,15 @@ namespace Redirect {
                     var remove = -1;
 
                     for (var i = 0; i < redirection.Count; i++) {
-                        
+
                         ImGui.Dummy(new Vector2(0, 2));
                         ImGui.PushItemWidth(125f);
 
                         if (ImGui.BeginCombo($"##redirection-{action.RowId}-{i}", redirection[i])) {
 
                             for (int j = 0; j < TargetOptions.Length; j++) {
-                               
-                                if(TargetOptions[j] == "Cursor" && !action.TargetArea) {
+
+                                if (TargetOptions[j] == "Cursor" && !action.TargetArea) {
                                     continue;
                                 }
 
@@ -319,13 +319,13 @@ namespace Redirect {
 
                     if (redirection.Count > 0) {
                         Configuration.Redirections[action.RowId] = redirection;
-                        
-                    } 
+
+                    }
                     else {
                         Configuration.Redirections.Remove(action.RowId);
                     }
 
-                    if(save) {
+                    if (save) {
                         Configuration.Save();
                     }
 

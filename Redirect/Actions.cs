@@ -36,7 +36,7 @@ namespace Redirect {
         private ExcelSheet<ExtendedClassJobCategory> CJC = null!;
         private IEnumerable<Action> Role = null!;
         private List<ClassJob> JobInfo = null!;
-        private Dictionary<ClassJob, IEnumerable<Action>> Jobs = new();
+        private readonly Dictionary<ClassJob, IEnumerable<Action>> Jobs = new();
         private bool initialized = false;
 
         public List<ClassJob> GetJobInfo() => initialized ? JobInfo : new List<ClassJob>();

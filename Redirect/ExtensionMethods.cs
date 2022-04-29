@@ -2,6 +2,9 @@
 using Lumina.Excel.GeneratedSheets;
 using System.Collections.Generic;
 using System.ComponentModel;
+using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Game.ClientState.Objects.Enums;
+using FFXIVClientStructs.FFXIV.Client.Game;
 
 namespace Redirect {
 
@@ -38,5 +41,35 @@ namespace Redirect {
         public static bool HasOptionalTargeting(this Action a) => a.CanTargetFriendly || a.CanTargetHostile || a.CanTargetParty || a.TargetArea;
 
         public static bool CanTargetFriendly(this Action a) => a.CanTargetFriendly || a.CanTargetParty || (a.TargetArea && !a.IsActionBlocked());
+
+        public static bool TargetTypeValid(this Action a, GameObject target) {
+            switch (target.ObjectKind) {
+                case ObjectKind.BattleNpc:
+                    BattleNpc npc = (BattleNpc)target;
+                    return npc.BattleNpcKind == BattleNpcSubKind.Enemy ? a.CanTargetHostile : a.CanTargetFriendly();
+                case ObjectKind.Player:
+                case ObjectKind.Companion:
+                    return a.CanTargetFriendly();
+                default:
+                    return false;
+            }
+        }
+
+        public static bool TargetInRangeAndLOS(this Action a, GameObject target, out uint err) {
+            if (Services.ClientState.LocalPlayer is not { } player) {
+                err = 0;
+                return false;
+            }
+
+            unsafe {
+                var player_ptr = (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)player.Address;
+                var target_ptr = (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)target.Address;
+                err = ActionManager.fpGetActionInRangeOrLoS(a.RowId, player_ptr, target_ptr);
+            }
+
+            // 0 success, 562 no LOS, 566 range, 565 not facing
+            // TODO: Check "auto face" option instead of assuming it is on
+            return err == 0 || err == 565;
+        }
     }
 }

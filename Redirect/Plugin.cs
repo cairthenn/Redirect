@@ -7,24 +7,25 @@ using System;
 
 namespace Redirect {
     public class Plugin : IDalamudPlugin, IDisposable {
-        
+
         public string Name => "Redirect";
         private const string CommandName = "/redirect";
         private Configuration Configuration { get; set; }
         private PluginUI PluginUi { get; } = null!;
         private Actions Actions { get; } = null!;
         private GameHooks Hooks { get; } = null!;
-        public DalamudPluginInterface Interface => Services.Interface;
-        public DataManager DataManager => Services.DataManager;
-        public CommandManager CommandManager => Services.CommandManager;
+        public static DalamudPluginInterface Interface => Services.Interface;
+        public static DataManager DataManager => Services.DataManager;
+        public static CommandManager CommandManager => Services.CommandManager;
 
 
         public Plugin([RequiredVersion("1.0")] DalamudPluginInterface i) {
             Services.Initialize(i);
-            
+
             try {
                 Configuration = Interface.GetPluginConfig() as Configuration ?? new Configuration();
-            }  catch(Exception) {
+            }
+            catch (Exception) {
                 PluginLog.Error("Failed to load plugin configuration. A new configuration file has been created.");
                 Configuration = new Configuration();
             }
