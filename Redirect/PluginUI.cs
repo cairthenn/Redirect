@@ -66,9 +66,9 @@ namespace Redirect {
 
                     ImGui.Dummy(new Vector2(-1, 1));
 
-                    bool stop_first_match = Configuration.StopFirstMatch;
-                    if (ImGui.Checkbox("Always stop redirections on first match", ref stop_first_match)) {
-                        Configuration.StopFirstMatch = stop_first_match;
+                    bool ignore_errors = Configuration.IgnoreErrors;
+                    if (ImGui.Checkbox("Ignore range and target type errors", ref ignore_errors)) {
+                        Configuration.IgnoreErrors = ignore_errors;
                     }
 
                     bool friendly_mo = Configuration.DefaultMouseoverFriendly;

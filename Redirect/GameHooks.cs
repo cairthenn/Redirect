@@ -1,9 +1,6 @@
 ﻿using Dalamud.Game;
-using Dalamud.Game.ClientState;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Game.ClientState.Objects.Enums;
-using Dalamud.Game.ClientState.Party;
 using Dalamud.Game.Gui.Toast;
 using Dalamud.Hooking;
 using Dalamud.Logging;
@@ -33,8 +30,6 @@ namespace Redirect {
 
         private Configuration Configuration { get; } = null!;
         private Actions Actions { get; } = null!;
-        private static PartyList PartyMembers => Services.PartyMembers;
-        private static ClientState ClientState => Services.ClientState;
         private static TargetManager TargetManager => Services.TargetManager;
         private static SigScanner SigScanner => Services.SigScanner;
         private static ToastGui ToastGui => Services.ToastGui;
@@ -163,23 +158,35 @@ namespace Redirect {
             }
         }
 
-        // TODO: No more strings .. requires config rework because I am big dumb
+        private unsafe GameObject? ResolvePlaceholder(string ph) {
+            try {
+                var fw = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance();
+                var ui = fw->GetUiModule();
+                var pm = ui->GetPronounModule();
+                var p = (IntPtr)pm->ResolvePlaceholder(ph, 0, 0);
+                return Services.ObjectTable.CreateObjectReference(p);
+            } catch (Exception ex){
+                PluginLog.Warning($"Unable to resolve pronoun ({ph}): {ex.Message}");
+                return null;
+            }
+        }
+
         public GameObject? ResolveTarget(string target) {
             return target switch {
                 "UI Mouseover" => CurrentUIMouseover,
                 "Model Mouseover" => TargetManager.MouseOverTarget,
-                "Self" => ClientState.LocalPlayer,
+                "Self" => Services.ClientState.LocalPlayer,
                 "Target" => TargetManager.Target,
                 "Focus" => TargetManager.FocusTarget,
                 "Target of Target" => TargetManager.Target is { } ? TargetManager.Target.TargetObject : null,
                 "Soft Target" => TargetManager.SoftTarget,
-                "<2>" => PartyMembers.Length > 1 ? PartyMembers[1]!.GameObject : null,
-                "<3>" => PartyMembers.Length > 2 ? PartyMembers[2]!.GameObject : null,
-                "<4>" => PartyMembers.Length > 3 ? PartyMembers[3]!.GameObject : null,
-                "<5>" => PartyMembers.Length > 4 ? PartyMembers[4]!.GameObject : null,
-                "<6>" => PartyMembers.Length > 5 ? PartyMembers[5]!.GameObject : null,
-                "<7>" => PartyMembers.Length > 6 ? PartyMembers[6]!.GameObject : null,
-                "<8>" => PartyMembers.Length > 7 ? PartyMembers[7]!.GameObject : null,
+                "<2>" => ResolvePlaceholder("<2>"),
+                "<3>" => ResolvePlaceholder("<3>"),
+                "<4>" => ResolvePlaceholder("<4>"),
+                "<5>" => ResolvePlaceholder("<5>"),
+                "<6>" => ResolvePlaceholder("<6>"),
+                "<7>" => ResolvePlaceholder("<7>"),
+                "<8>" => ResolvePlaceholder("<8>"),
                 _ => null,
             };
         }
@@ -244,9 +251,6 @@ namespace Redirect {
                         if (cursor_status == CursorStatus.OK) {
                             return GroundActionAtCursor(action_manager, type, id, target, param, origin, unk, location);
                         }
-                        else if (Configuration.StopFirstMatch) {
-                            break;
-                        }
                     }
                     else {
                         GameObject? nt = ResolveTarget(t);
@@ -259,7 +263,7 @@ namespace Redirect {
                                 }
                                 return TryActionHook.Original(action_manager, type, id, nt.ObjectId, param, origin, unk, location);
                             }
-                            else if (Configuration.StopFirstMatch) {
+                            else if (!Configuration.IgnoreErrors) {
                                 switch (err) {
                                     case 566:
                                         ToastGui.ShowError("Target not in line of sight.");
@@ -296,7 +300,7 @@ namespace Redirect {
                     if (ok && tt_ok) {
                         nt = CurrentUIMouseover;
                     }
-                    else if (Configuration.StopFirstMatch) {
+                    else if (!Configuration.IgnoreErrors) {
                         ToastGui.ShowError(ok ? "Invalid target." : "Target is not in range.");
                         return false;
                     }
@@ -307,7 +311,7 @@ namespace Redirect {
                     if (ok && tt_ok) {
                         nt = TargetManager.MouseOverTarget;
                     }
-                    else if (Configuration.StopFirstMatch) {
+                    else if (!Configuration.IgnoreErrors) {
                         ToastGui.ShowError(ok ? "Invalid target." : "Target is not in range.");
                         return false;
                     }

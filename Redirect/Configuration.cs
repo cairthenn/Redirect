@@ -16,7 +16,7 @@ namespace Redirect {
         public bool QueuePotions { get; set; } = false;
         public bool QueueSprint { get; set; } = false;
         public bool QueueGroundActions { get; set; } = false;
-        public bool StopFirstMatch { get; set; } = false;
+        public bool IgnoreErrors { get; set; } = false;
         public string DefaultRedirection { get; set; } = "UI Mouseover";
         public Dictionary<uint, Redirection> Redirections { get; set; } = new();
 
