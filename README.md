@@ -20,11 +20,10 @@ This plugin has a single command, `/redirect`, that opens the configuration. In 
 
 These options let you control how Redirect handles target changing:
 
-* `Ignore targets out of range` : Incurs a distance check on potential target changes. If the action is redirected to a target out of range, that target is ignored, and the next choice will be attempted
-* `Ignore incorrect target types`: Incurs a target type check on potential target changes. Prevents trying to use friendly spells on hostile targets and vice versa
+* `Ignore range and target type errors` : Sometimes, the target selection process encounters a target that is out of range or otherwise invalid. This skips those instead of erroring.
 * `Treat all <friendly/hostile> actions as mouseovers` : Treats all actions of the specified type as UI mouseover candidates by default
   * `Include <friendly/hostile> target models` : Treats all actions of the specified type as model mouseover candidates as well
-  * `Include ground targets at cursor` : All actions that use cursor placement (Asylum, Earthly Star, Sacred Soil) will be instantly placed at the mouse cursor
+* `Place all ground targets at the cursor` : All actions that use cursor placement (eg. Asylum, Earthly Star, Sacred Soil) will be instantly placed at the mouse cursor
 
 These options allow additional things to enter the combat queue, avoiding "clipping" the GCD:
 
