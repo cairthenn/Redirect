@@ -66,14 +66,9 @@ namespace Redirect {
 
                     ImGui.Dummy(new Vector2(-1, 1));
 
-                    bool range_fail = Configuration.SilentRangeFailure;
-                    if (ImGui.Checkbox("Ignore targets out of range", ref range_fail)) {
-                        Configuration.SilentRangeFailure = range_fail;
-                    }
-
-                    bool tt_fail = Configuration.SilentTargetTypeFailure;
-                    if (ImGui.Checkbox("Ignore incorrect target types", ref tt_fail)) {
-                        Configuration.SilentTargetTypeFailure = tt_fail;
+                    bool stop_first_match = Configuration.StopFirstMatch;
+                    if (ImGui.Checkbox("Always stop redirections on first match", ref stop_first_match)) {
+                        Configuration.StopFirstMatch = stop_first_match;
                     }
 
                     bool friendly_mo = Configuration.DefaultMouseoverFriendly;
@@ -87,12 +82,6 @@ namespace Redirect {
                         bool friendly_mo_model = Configuration.DefaultModelMouseoverFriendly;
                         if (ImGui.Checkbox("Include friendly target models", ref friendly_mo_model)) {
                             Configuration.DefaultModelMouseoverFriendly = friendly_mo_model;
-                        }
-                        ImGui.Dummy(new Vector2(1, -1));
-                        ImGui.SameLine();
-                        bool cursor_mo = Configuration.DefaultCursorMouseover;
-                        if (ImGui.Checkbox("Include ground targets at cursor", ref cursor_mo)) {
-                            Configuration.DefaultCursorMouseover = cursor_mo;
                         }
                     }
 
@@ -108,6 +97,11 @@ namespace Redirect {
                         if (ImGui.Checkbox("Include hostile target models", ref hostile_mo_model)) {
                             Configuration.DefaultModelMouseoverHostile = hostile_mo_model;
                         }
+                    }
+
+                    bool cursor_mo = Configuration.DefaultCursorMouseover;
+                    if (ImGui.Checkbox("Place all ground targets at the cursor", ref cursor_mo)) {
+                        Configuration.DefaultCursorMouseover = cursor_mo;
                     }
 
                     ImGui.Dummy(new Vector2(-1, 1));

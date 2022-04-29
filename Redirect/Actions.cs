@@ -15,10 +15,10 @@ namespace Redirect {
     /// </summary>
     public class ExtendedClassJobCategory : ClassJobCategory {
 
-        private bool[] classJob;
+        private bool[]? classJob;
 
-        public bool this[ClassJob cj] => cj.RowId < classJob.Length && classJob[cj.RowId];
-        public bool this[uint cj] => cj < classJob.Length && classJob[cj];
+        public bool this[ClassJob cj] => cj.RowId < classJob?.Length && classJob[cj.RowId];
+        public bool this[uint cj] => cj < classJob?.Length && classJob[cj];
 
         public override void PopulateData(RowParser parser, GameData gameData, Language language) {
             base.PopulateData(parser, gameData, language);

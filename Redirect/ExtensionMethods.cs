@@ -19,17 +19,23 @@ namespace Redirect {
             25822, // "Astral Flow",
         };
 
-        public static bool IsActionAllowed(this Action a) {
-            return ActionAllowlist.Contains(a.RowId);
-        }
+        /// <summary>
+        /// For certain actions, only the upgraded version has optional targeting. This returns true for such actions.
+        /// * Relies on a manually updated list (ActionAllowlist)
+        /// </summary>
+        /// <param name="a"></param>
+        /// <returns></returns>
+        public static bool IsActionAllowed(this Action a) => ActionAllowlist.Contains(a.RowId);
 
-        public static bool IsActionBlocked(this Action a) {
-            return ActionBlocklist.Contains(a.RowId);
-        }
+        /// <summary>
+        /// Some actions are labeled with optional targetability, but break if tried to use in such a way. This returns true for such actions.
+        /// * Relies on a manually updated list (ActionBlocklist)
+        /// </summary>
+        /// <param name="a"></param>
+        /// <returns></returns>
+        public static bool IsActionBlocked(this Action a) => ActionBlocklist.Contains(a.RowId);
 
-        public static bool HasOptionalTargeting(this Action a) {
-            return a.CanTargetFriendly || a.CanTargetHostile || a.CanTargetParty || a.TargetArea;
-        }
+        public static bool HasOptionalTargeting(this Action a) => a.CanTargetFriendly || a.CanTargetHostile || a.CanTargetParty || a.TargetArea;
 
         public static bool CanTargetFriendly(this Action a) => a.CanTargetFriendly || a.CanTargetParty || (a.TargetArea && !a.IsActionBlocked());
     }

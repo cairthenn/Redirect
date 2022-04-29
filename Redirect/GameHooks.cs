@@ -1,23 +1,35 @@
-﻿using System;
-using System.Numerics;
-using System.Runtime.InteropServices;
-using Dalamud.Game;
+﻿using Dalamud.Game;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Party;
+using Dalamud.Game.Gui.Toast;
 using Dalamud.Hooking;
 using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using Dalamud.Game.Gui.Toast;
+using System;
+using System.Collections.Generic;
+using System.Numerics;
+using System.Runtime.InteropServices;
 
-namespace Redirect { 
+namespace Redirect {
     internal class GameHooks : IDisposable {
+
+        internal enum CursorStatus {
+            OK, RANGE, INVALID
+        }
+
+        private static Dictionary<CursorStatus, string> CursorErrorToasts = new() {
+            { CursorStatus.OK, "Something has gone terribly wrong."},
+            { CursorStatus.RANGE, "Target is not in range."},
+            { CursorStatus.INVALID, "Invalid target."},
+        };
 
         private const string UIMOSig = "E8 ?? ?? ?? ?? 48 8B 6C 24 58 48 8B 5C 24 50 4C 8B 7C";
         private const string ActionResourceSig = "E8 ?? ?? ?? ?? 4C 8B E8 48 85 C0 0F 84 ?? ?? ?? ?? 41 83 FE 04";
         private const string GroundActionCheckSig = "E8 ?? ?? ?? ?? 44 8B 83 ?? ?? ?? ?? 4C 8D 4C 24 60";
-        private const string GetGroundPlacementSig = "E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4c 8B C3 48 8D 54";
+        private const string GetGroundPlacementSig = "E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4C 8B C3 48 8D 54";
 
         private Configuration Configuration { get; } = null!;
         private Actions Actions { get; } = null!;
@@ -35,18 +47,16 @@ namespace Redirect {
         private unsafe delegate bool TryActionDelegate(IntPtr tp, ActionType t, uint id, ulong target, uint param, uint origin, uint unk, void* l);
         private unsafe delegate bool UseActionDelegate(IntPtr tp, ActionType t, uint id, ulong target, Vector3* l, uint param = 0);
         private unsafe delegate void GroundActionValidDelegate(IntPtr tp, uint id, ActionType t, bool* results);
-        private unsafe delegate bool GetGroundPlacementDelegate(IntPtr tp, uint id, ActionType t, Vector3* where, bool* results);
-        private delegate uint ActionValidDelegate(uint id, IntPtr src, IntPtr dst);
-        private delegate IntPtr GetActionResourceDelegate(int id);
+        private unsafe delegate bool GetGroundPlacementDelegate(IntPtr tp, uint id, ActionType t, float* where, ulong* results);
+        private delegate IntPtr GetActionRowPtrDelegate(int id);
         private delegate void MouseoverEntityDelegate(IntPtr t, IntPtr entity);
 
         private Hook<TryActionDelegate> TryActionHook = null!;
         private Hook<MouseoverEntityDelegate> MouseoverHook = null!;
         private UseActionDelegate UseAction = null!;
-        private GetActionResourceDelegate GetActionResource = null!;
+        private GetActionRowPtrDelegate GetActionRowPtr = null!;
         private GroundActionValidDelegate GroundActionValid = null!;
         private GetGroundPlacementDelegate GetGroundPlacement = null!;
-        private ActionValidDelegate ActionValid = null!;
         private volatile GameObject? CurrentUIMouseover = null!;
 
         public GameHooks(Configuration config, Actions actions) {
@@ -65,7 +75,7 @@ namespace Redirect {
 
             var actionres_offset = Dalamud.Memory.MemoryHelper.Read<int>(actionres_ptr + 1);
             var actionres_fn_ptr = actionres_ptr + 5 + actionres_offset;
-            GetActionResource = Marshal.GetDelegateForFunctionPointer<GetActionResourceDelegate>(actionres_fn_ptr);
+            GetActionRowPtr = Marshal.GetDelegateForFunctionPointer<GetActionRowPtrDelegate>(actionres_fn_ptr);
 
             var groundaction_offset = Dalamud.Memory.MemoryHelper.Read<int>(groundaction_ptr + 1);
             var groundaction_fn_ptr = groundaction_ptr + 5 + groundaction_offset;
@@ -83,7 +93,6 @@ namespace Redirect {
             unsafe {
                 TryActionHook = new Hook<TryActionDelegate>((IntPtr) ActionManager.fpUseAction, TryActionCallback);
                 UseAction = Marshal.GetDelegateForFunctionPointer<UseActionDelegate>((IntPtr) ActionManager.fpUseActionLocation);
-                ActionValid = Marshal.GetDelegateForFunctionPointer<ActionValidDelegate>((IntPtr) ActionManager.fpGetActionInRangeOrLoS);
             }
 
             UpdateSprintQueueing(Configuration.QueueSprint);
@@ -93,7 +102,7 @@ namespace Redirect {
             MouseoverHook.Enable();
         }
 
-        // ActionResource:
+        // ActionRow:
 
         // 0x08:    IconID
         // 0x0A:    Cast VFX
@@ -106,15 +115,15 @@ namespace Redirect {
         // 0x40:    Name
 
         public void UpdateSprintQueueing(bool enable) {
-            var res = GetActionResource(3);
+            var row = GetActionRowPtr(3);
             var type = enable ? ActionType.Ability : ActionType.MainCommand;
-            Dalamud.SafeMemory.Write(res + 0x20, (byte) type);
+            Dalamud.SafeMemory.Write(row + 0x20, (byte) type);
         }
 
         public void UpdatePotionQueueing(bool enable) {
-            var res = GetActionResource(0x34E);
+            var row = GetActionRowPtr(846);
             var type = enable ? ActionType.Ability : ActionType.General;
-            Dalamud.SafeMemory.Write(res + 0x20, (byte) type);
+            Dalamud.SafeMemory.Write(row + 0x20, (byte) type);
         }
 
         private bool TryQueueAction(IntPtr action_manager, uint id, uint param, ActionType action_type, ulong target_id) {
@@ -137,107 +146,59 @@ namespace Redirect {
             return true;
         }
 
-        private bool ValidateRange(Lumina.Excel.GeneratedSheets.Action action, GameObject? target, bool place_at_cursor = false) {
-
-            if(!Configuration.SilentRangeFailure) {
-                return true;
-            } 
-            else if (target == null && !place_at_cursor) {
-                return false;
-            }
-
-            if (place_at_cursor) {
-                bool[] results = new bool[4];
-                unsafe {
-                    fixed (bool* p = results) {
-                        GroundActionValid((IntPtr)ActionManager.Instance(), action.RowId, ActionType.Spell, p);
-                    }
-                    var success = results[0] && results[1];
-                    return success;
+        private CursorStatus ValidateCursorPlacement(IntPtr action_manager, Lumina.Excel.GeneratedSheets.Action action) {
+            bool[] results = new bool[4];
+            unsafe {
+                fixed (bool* p = results) {
+                    GroundActionValid(action_manager, action.RowId, ActionType.Spell, p);
                 }
-            }
-
-            var result = ActionValid(action.RowId, ClientState.LocalPlayer!.Address, target!.Address);
-
-            return result == 0 || result == 565;
-        }
-
-        private bool ValidateTargetType(Lumina.Excel.GeneratedSheets.Action action, GameObject? target, bool place_at_cursor = false) {
-            
-            if(!Configuration.SilentTargetTypeFailure || place_at_cursor) {
-                return true;
-            } else if(target == null) {
-                return false;
-            }
-
-            if(target.ObjectKind == Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player && action.CanTargetFriendly()) {
-                return true;
-            } else if(target.ObjectKind == Dalamud.Game.ClientState.Objects.Enums.ObjectKind.BattleNpc && action.CanTargetHostile) {
-                return true;
-            }
-
-            return false;
-        }
-
-        private GameObject? RedirectTarget(Lumina.Excel.GeneratedSheets.Action original, Lumina.Excel.GeneratedSheets.Action upgraded, ref bool place_at_cursor) {
-
-            var id = original.RowId;
-
-            // Global fallbacks
-
-            if (!Configuration.Redirections.ContainsKey(id)) {
                 
-                if(Configuration.DefaultMouseoverFriendly && upgraded.CanTargetFriendly()) {
-                    
-                    if (CurrentUIMouseover != null && ValidateRange(upgraded, CurrentUIMouseover) && ValidateTargetType(upgraded, CurrentUIMouseover)) {
-                        return CurrentUIMouseover;
-                    }
-                    else if (Configuration.DefaultModelMouseoverFriendly && TargetManager.MouseOverTarget != null && 
-                        ValidateRange(upgraded, TargetManager.MouseOverTarget) && ValidateTargetType(upgraded, TargetManager.MouseOverTarget)) {
-                        return TargetManager.MouseOverTarget;
-                    }
-                    else if (Configuration.DefaultCursorMouseover && upgraded.TargetArea && !upgraded.IsActionBlocked()) {
-                        place_at_cursor = true;
-                        return null;
-                    }
-                }
-                else if(Configuration.DefaultMouseoverHostile && upgraded.CanTargetHostile) {
-
-                    if (CurrentUIMouseover != null && ValidateRange(upgraded, CurrentUIMouseover) && ValidateTargetType(upgraded, CurrentUIMouseover)) {
-                        return CurrentUIMouseover;
-                    }
-                    else if (Configuration.DefaultModelMouseoverHostile && ValidateRange(upgraded, TargetManager.MouseOverTarget) && 
-                        ValidateTargetType(upgraded, TargetManager.MouseOverTarget)) {
-                        return TargetManager.MouseOverTarget;
-                    }
+                if(results[0] && results[1]) {
+                    return CursorStatus.OK;
+                } else if(results[2]) {
+                    return CursorStatus.RANGE;
                 }
 
-                return null;
+                return CursorStatus.INVALID;
             }
-
-            // Individual spells
-
-            foreach (var t in Configuration.Redirections[id].Priority) {
-                var nt = ResolveTarget(t, ref place_at_cursor);
-                var range_ok = ValidateRange(upgraded, nt, place_at_cursor);
-                var tt_ok = ValidateTargetType(upgraded, nt, place_at_cursor);
-
-                if (range_ok && tt_ok && (nt != null || place_at_cursor)) {
-                    return nt;
-                }
-            };
-
-            return null;
         }
 
-        public GameObject? ResolveTarget(string target, ref bool place_at_cursor) {
+        private bool ActionTargetValid(uint id, GameObject target, out uint err) {
 
-            place_at_cursor = false;
+            if (ClientState.LocalPlayer is not { } player) {
+                err = 0;
+                return false;
+            }
+
+            unsafe {
+                var player_ptr = (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)player.Address;
+                var target_ptr = (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)target.Address;
+                err = ActionManager.fpGetActionInRangeOrLoS(id, player_ptr, target_ptr);
+            }
+
+            // 0 success, 562 no LOS, 566 range, 565 not facing
+            // TODO: Check "auto face" option instead of assuming it is on
+            return err == 0 || err == 565;
+        }
+
+        private bool ValidateTargetType(Lumina.Excel.GeneratedSheets.Action action, GameObject target) {
+
+            switch(target.ObjectKind) {
+                case ObjectKind.BattleNpc:
+                    BattleNpc npc = (BattleNpc)target;
+                    return npc.BattleNpcKind == BattleNpcSubKind.Enemy ? action.CanTargetHostile : action.CanTargetFriendly();
+                case ObjectKind.Player:
+                case ObjectKind.Companion:
+                    return action.CanTargetFriendly();
+                default:
+                    return false;
+            }
+        }
+        
+        // TODO: No more strings .. requires config rework because I am big dumb
+        public GameObject? ResolveTarget(string target) {
 
             switch (target) {
-                case "Cursor":
-                    place_at_cursor = true;
-                    return null;
                 case "UI Mouseover":
                     return CurrentUIMouseover;
                 case "Model Mouseover":
@@ -271,144 +232,201 @@ namespace Redirect {
             }
         }
 
-        private unsafe bool TryActionCallback(IntPtr this_ptr, ActionType action_type, uint id, ulong target, uint param, uint origin, uint unk, void* location) {
-            
+        private unsafe bool TryActionCallback(IntPtr action_manager, ActionType type, uint id, ulong target, uint param, uint origin, uint unk, void* location) {
+
             // Potion dequeueing
-            if(Configuration.QueuePotions && action_type == ActionType.Item && origin == 1) {
+            // This picks the item from any available slot, which is the default hotbar method
+            if (Configuration.QueuePotions && type == ActionType.Item && origin == 1) {
                 param = 65535;
             }
 
             // Special sprint handling
-            if (Configuration.QueueSprint && action_type == ActionType.General && id == 4) {
-                return TryActionHook.Original(this_ptr, ActionType.Spell, 3, target, param, origin, unk, location);
+            if (Configuration.QueueSprint && type == ActionType.General && id == 4) {
+                return TryActionHook.Original(action_manager, ActionType.Spell, 3, target, param, origin, unk, location);
             }
 
             // This is NOT the same classification as the item's resource, but a more generic version
             // Every spell, ability, and weaponskill (even sprint, which is a "main command"), gets called with
             // the designation of "Spell" (1). Thus, we can avoid most tomfoolery by returning early
-
-            if (action_type != ActionType.Spell) {
-                return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
+            if (type != ActionType.Spell) {
+                return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
             }
 
-            var original_res = Actions.GetRow(id);
+            // The action row for the originating ID
+            var original_row = Actions.GetRow(id);
 
-            if(original_res == null || original_res.IsPvP) {
-                return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
+            // The row should never be null here, unless the function somehow gets a bad ID
+            // Regardless, this makes the compiler happy and we can avoid PVP handling at the same time
+            if (original_row is null || original_row.IsPvP) {
+                return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
             }
 
             // Macro queueing
-
+            // Known origins : 0 - bar, 1 - queue, 2 - macro
             origin = origin == 2 && Configuration.EnableMacroQueueing ? 0 : origin;
 
             // Actions placed on bars try to use their base action, so we need to get the upgraded version
+            var adjusted_id = ActionManager.fpGetAdjustedActionId((ActionManager*)action_manager, id);
 
-            var temp_id = ActionManager.fpGetAdjustedActionId((ActionManager*) this_ptr, id);
-            var use_res = original_res!;
+            // The action id to match against what's stored in the user config
+            var conf_id = original_row!.RowId;
 
-            var adjusted_res = Actions.GetRow(temp_id)!;
+            // The actual action that will be used
+            var adjusted_row = Actions.GetRow(adjusted_id)!;
 
-            if (adjusted_res.IsPlayerAction) {
-                use_res = adjusted_res!;
+            // Only actions where "IsPlayerAction" is true are allowed into the config
+            if (adjusted_row.IsPlayerAction) {
+                conf_id = adjusted_row!.RowId;
             }
 
-            bool place_at_cursor = false;
-            var new_target = RedirectTarget(original_res, adjusted_res, ref place_at_cursor);
+            if (Configuration.Redirections.ContainsKey(conf_id)) {
 
-            // Ground targeting actions at the cursor
+                CursorStatus cursor_status = CursorStatus.INVALID;
+                bool suppress_target_ring = false;
 
-            if (place_at_cursor) {
-                var status = ActionManager.fpGetActionStatus((ActionManager*) this_ptr, action_type, id, (long) target, 1, 1);
+                foreach (var t in Configuration.Redirections[conf_id].Priority) {
 
-                if (status != 0 && status != 0x244) {
-                    return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
+                    if (t == "Cursor" && adjusted_row.TargetArea) {
+                        suppress_target_ring = true;
+                        cursor_status = ValidateCursorPlacement(action_manager, adjusted_row);
+                        if (cursor_status == CursorStatus.OK) {
+                            return GroundActionAtCursor(action_manager, type, id, target, param, origin, unk, location);
+                        } else if (Configuration.StopFirstMatch) {
+                            break;
+                        }
+                    } else {
+                        GameObject? nt = ResolveTarget(t);
+                        if (nt is not null) {
+                            bool ok = ActionTargetValid(adjusted_row.RowId, nt, out var err);
+                            bool tt_ok = ValidateTargetType(adjusted_row, nt);
+                            if (ok && tt_ok) {
+                                if (adjusted_row.TargetArea) {
+                                    return GroundActionAtTarget(action_manager, type, id, nt, param, origin, unk, location);
+                                }
+                                return TryActionHook.Original(action_manager, type, id, nt.ObjectId, param, origin, unk, location);
+                            } else if (Configuration.StopFirstMatch) {
+                                switch (err) {
+                                    case 566:
+                                        ToastGui.ShowError("Target not in line of sight.");
+                                        break;
+                                    case 562:
+                                    default:
+                                        ToastGui.ShowError("Invalid target.");
+                                        break;
+                                }
+                                return false;
+                            }
+                        }
+                    }
                 }
 
-                Dalamud.SafeMemory.Read(this_ptr + 0x08, out float animation_timer);
+                if(adjusted_row.TargetArea && suppress_target_ring) {
+                    ToastGui.ShowError(CursorErrorToasts[cursor_status]);
+                    return false;
+                }
 
-                if(status == 0x244 || animation_timer > 0) {
-                    if(!Configuration.QueueGroundActions) {
-                        ToastGui.ShowError("Cannot use while casting.");
+                return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
+
+            } else if(adjusted_row.HasOptionalTargeting()) {
+                GameObject? nt = null;
+                var friendly = adjusted_row.CanTargetFriendly();
+                var hostile = adjusted_row.CanTargetHostile && !friendly;
+                var mo = friendly ? Configuration.DefaultMouseoverFriendly : hostile ? Configuration.DefaultMouseoverHostile : false;
+                var model_mo = friendly && mo ? Configuration.DefaultModelMouseoverFriendly : hostile && mo ? Configuration.DefaultModelMouseoverHostile : false;
+
+                if(CurrentUIMouseover is not null && mo) {
+                    bool ok = ActionTargetValid(adjusted_row.RowId, CurrentUIMouseover, out var err);
+                    bool tt_ok = ValidateTargetType(adjusted_row, CurrentUIMouseover);
+                    if (ok && tt_ok) {
+                        nt = CurrentUIMouseover;
+                    } else if(Configuration.StopFirstMatch) {
+                        ToastGui.ShowError(ok ? "Invalid target." : "Target is not in range.");
                         return false;
                     }
-
-                    return TryQueueAction(this_ptr, id, param, action_type, target);
-                }
-
-                bool[] results  = new bool[4];
-
-                fixed (bool* p = results) {
-                    GroundActionValid(this_ptr, use_res.RowId, action_type, p);
-                }
-
-                Vector3 v;
-                bool[] results2 = new bool[4];
-
-                fixed (bool* p = results2) {
-                    bool success = GetGroundPlacement(this_ptr, use_res.RowId, action_type, &v, p);
-                }
-
-                if (results[1]) {
-                    return UseAction(this_ptr, action_type, use_res.RowId, target, &v, param);
-                }
-
-                if(results[2]) {
-                    ToastGui.ShowError("Target is not in range.");
-                }
-                else {
-                    ToastGui.ShowError("Invalid target.");
-                }
-
-                return false;
-            }
-
-            // Successfully changed target
-
-            if (new_target != null) {
-
-                if (!use_res.TargetArea) {
-                    return TryActionHook.Original(this_ptr, action_type, use_res.RowId, new_target.ObjectId, param, origin, unk, location);
-                }
-
-                // Ground placed action at specific game object
-
-                var status = ActionManager.fpGetActionStatus((ActionManager*) this_ptr, action_type, use_res.RowId, (long) target, 1, 1);
-
-                if (status != 0 && status != 0x244) {
-                    return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
-                }
-
-                Dalamud.SafeMemory.Read(this_ptr + 0x08, out float animation_timer);
-
-                if (status == 0x244 || animation_timer > 0) {
-                    if (!Configuration.QueueGroundActions) {
-                        ToastGui.ShowError("Cannot use while casting.");
+                } else if(TargetManager.MouseOverTarget is not null && model_mo) {
+                    bool ok = ActionTargetValid(adjusted_row.RowId, TargetManager.MouseOverTarget, out var err);
+                    bool tt_ok = ValidateTargetType(adjusted_row, TargetManager.MouseOverTarget);
+                    if (ok && tt_ok) {
+                        nt = TargetManager.MouseOverTarget;
+                    } else if (Configuration.StopFirstMatch) {
+                        ToastGui.ShowError(ok ? "Invalid target." : "Target is not in range.");
                         return false;
                     }
-
-                    return TryQueueAction(this_ptr, use_res.RowId, param, action_type, target);
                 }
 
-                var result = ActionValid(id, ClientState.LocalPlayer!.Address, new_target.Address);
+                if (nt is not null) {
+                    if(adjusted_row.TargetArea) {
+                        return GroundActionAtTarget(action_manager, type, id, nt, param, origin, unk, location);
+                    }
 
-                if (result == 0) {
-                    var new_location = new_target.Position;
-                    return UseAction(this_ptr, action_type, use_res.RowId, new_target.ObjectId, &new_location);
+                    return TryActionHook.Original(action_manager, type, id, nt.ObjectId, param, origin, unk, location);
                 }
 
-                if(result == 0x236) {
-                    ToastGui.ShowError("Target is not in range.");
+                if(Configuration.DefaultCursorMouseover && adjusted_row.TargetArea && !adjusted_row.IsActionBlocked()) {
+                    CursorStatus cs = ValidateCursorPlacement(action_manager, adjusted_row);
+                    if (cs == CursorStatus.OK) {
+                        return GroundActionAtCursor(action_manager, type, id, target, param, origin, unk, location);
+                    } else {
+                        ToastGui.ShowError(CursorErrorToasts[cs]);
+                        return false;
+                    }
                 }
-                else {
-                    ToastGui.ShowError("Invalid target.");
-                }
-
-                return false;
             }
 
-            // Use the action normally
+            return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
+        }
 
-            return TryActionHook.Original(this_ptr, action_type, id, target, param, origin, unk, location);
+        private unsafe bool GroundActionAtCursor(IntPtr action_manager, ActionType type, uint id, ulong target, uint param, uint origin, uint unk, void* location) {
+            var status = ActionManager.fpGetActionStatus((ActionManager*)action_manager, type, id, (uint)target, 1, 1);
+
+            if (status != 0 && status != 0x244) {
+                return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
+            }
+
+            Dalamud.SafeMemory.Read(action_manager + 0x08, out float animation_timer);
+
+            if (status == 0x244 || animation_timer > 0) {
+                if (!Configuration.QueueGroundActions) {
+                    ToastGui.ShowError("Cannot use while casting.");
+                    return false;
+                }
+
+                return TryQueueAction(action_manager, id, param, type, target);
+            }
+
+            float[] loc = new float[6];
+            ulong results = 1;
+            fixed (float* p = loc) {
+                bool success = GetGroundPlacement(action_manager, id, type, p, &results);
+            }
+
+            Vector3 v = new(loc[0], loc[1], loc[2]);
+
+            return UseAction(action_manager, type, id, target, &v, param);
+        }
+
+        private unsafe bool GroundActionAtTarget(IntPtr action_manager, ActionType type, uint action, GameObject target, uint param, uint origin, uint unk, void* location) {
+
+            var status = ActionManager.fpGetActionStatus((ActionManager*)action_manager, type, action, target.ObjectId, 1, 1);
+
+            if (status != 0 && status != 0x244) {
+                return TryActionHook.Original(action_manager, type, action, target.ObjectId, param, origin, unk, location);
+            }
+
+            Dalamud.SafeMemory.Read(action_manager + 0x08, out float animation_timer);
+            
+            if (status == 0x244 || animation_timer > 0) {
+                if (!Configuration.QueueGroundActions) {
+                    ToastGui.ShowError("Cannot use while casting.");
+                    return false;
+                }
+
+                return TryQueueAction(action_manager, action, param, type, target.ObjectId);
+            }
+
+            var new_location = target.Position;
+
+            return UseAction(action_manager, type, action, target.ObjectId, &new_location);
         }
 
         private void OnMouseoverEntityCallback(IntPtr this_ptr, IntPtr entity) {
