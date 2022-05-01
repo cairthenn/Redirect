@@ -41,6 +41,11 @@ namespace Redirect {
         public static bool CanTargetFriendly(this Action a) => a.CanTargetFriendly || a.CanTargetParty || (a.TargetArea && !a.IsActionBlocked());
 
         public static bool TargetTypeValid(this Action a, GameObject target) {
+
+            if(a.TargetArea) {
+                return true;
+            }
+
             switch (target.ObjectKind) {
                 case ObjectKind.BattleNpc:
                     BattleNpc npc = (BattleNpc)target;
