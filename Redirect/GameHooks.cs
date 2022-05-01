@@ -166,7 +166,7 @@ namespace Redirect {
                 var p = (IntPtr)pm->ResolvePlaceholder(ph, 0, 0);
                 return Services.ObjectTable.CreateObjectReference(p);
             } catch (Exception ex){
-                PluginLog.Warning($"Unable to resolve pronoun ({ph}): {ex.Message}");
+                PluginLog.Error($"Unable to resolve pronoun ({ph}): {ex.Message}");
                 return null;
             }
         }
