@@ -99,6 +99,11 @@ namespace Redirect {
                         }
                     }
 
+                    bool ground_mo = Configuration.DefaultMouseoverGround;
+                    if (ImGui.Checkbox("Treat all ground-targeted actions as mouseovers", ref ground_mo)) {
+                        Configuration.DefaultMouseoverGround = ground_mo;
+                    }
+
                     bool cursor_mo = Configuration.DefaultCursorMouseover;
                     if (ImGui.Checkbox("Place all ground targets at the cursor", ref cursor_mo)) {
                         Configuration.DefaultCursorMouseover = cursor_mo;

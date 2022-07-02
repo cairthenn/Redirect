@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.ClientState.Objects.Enums;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using Dalamud.Logging;
 
 namespace Redirect {
 
@@ -38,7 +39,7 @@ namespace Redirect {
 
         public static bool HasOptionalTargeting(this Action a) => a.CanTargetFriendly || a.CanTargetHostile || a.CanTargetParty || a.TargetArea;
 
-        public static bool CanTargetFriendly(this Action a) => a.CanTargetFriendly || a.CanTargetParty || (a.TargetArea && !a.IsActionBlocked());
+        public static bool CanTargetFriendly(this Action a) => a.CanTargetFriendly || a.CanTargetParty;
 
         public static bool TargetTypeValid(this Action a, GameObject target) {
 
@@ -50,10 +51,12 @@ namespace Redirect {
                 case ObjectKind.BattleNpc:
                     BattleNpc npc = (BattleNpc)target;
                     return npc.BattleNpcKind == BattleNpcSubKind.Enemy ? a.CanTargetHostile : a.CanTargetFriendly();
+                case ObjectKind.EventNpc:
                 case ObjectKind.Player:
                 case ObjectKind.Companion:
                     return a.CanTargetFriendly();
                 default:
+                    PluginLog.Information($"{a.Name} cannot be used on {target.Name} with type {target.ObjectKind}");
                     return false;
             }
         }
