@@ -268,7 +268,6 @@ namespace Redirect {
                                 return TryActionHook.Original(action_manager, type, id, nt.ObjectId, param, origin, unk, location);
                             }
                             else if (!Configuration.IgnoreErrors) {
-                                PluginLog.Information($"Err: {err}");
                                 switch (err) {
                                     case 566:
                                         ToastGui.ShowError("Target not in line of sight.");
