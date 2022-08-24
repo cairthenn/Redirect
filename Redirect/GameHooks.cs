@@ -82,10 +82,10 @@ namespace Redirect {
 
             var uimo_offset = Dalamud.Memory.MemoryHelper.Read<int>(uimo_ptr + 1);
             var uimo_hook_ptr = uimo_ptr + 5 + uimo_offset;
-            MouseoverHook = new Hook<MouseoverEntityDelegate>(uimo_hook_ptr, OnMouseoverEntityCallback);
+            MouseoverHook = Hook<MouseoverEntityDelegate>.FromAddress(uimo_hook_ptr, OnMouseoverEntityCallback);
 
             unsafe {
-                TryActionHook = new Hook<TryActionDelegate>((IntPtr)ActionManager.fpUseAction, TryActionCallback);
+                TryActionHook = Hook<TryActionDelegate>.FromAddress((IntPtr)ActionManager.fpUseAction, TryActionCallback);
                 UseAction = Marshal.GetDelegateForFunctionPointer<UseActionDelegate>((IntPtr)ActionManager.fpUseActionLocation);
             }
 
@@ -231,7 +231,11 @@ namespace Redirect {
             var conf_id = original_row!.RowId;
 
             // The actual action that will be used
-            var adjusted_row = Actions.GetRow(adjusted_id)!;
+            var adjusted_row = Actions.GetRow(adjusted_id);
+
+            if (adjusted_row is null || !adjusted_row.HasOptionalTargeting()) {
+                return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
+            }
 
             // Only actions where "IsPlayerAction" is true are allowed into the config
             if (adjusted_row.IsPlayerAction) {
@@ -269,6 +273,8 @@ namespace Redirect {
                                         ToastGui.ShowError("Target not in line of sight.");
                                         break;
                                     case 562:
+                                        ToastGui.ShowError("Target is not in range.");
+                                        break;
                                     default:
                                         ToastGui.ShowError("Invalid target.");
                                         break;
@@ -287,11 +293,12 @@ namespace Redirect {
                 return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
 
             }
-            else if (adjusted_row.HasOptionalTargeting()) {
+            else {
                 GameObject? nt = null;
                 var friendly = adjusted_row.CanTargetFriendly();
                 var hostile = adjusted_row.CanTargetHostile && !friendly;
-                var mo = friendly ? Configuration.DefaultMouseoverFriendly : hostile && Configuration.DefaultMouseoverHostile;
+                var ground = adjusted_row.TargetArea && !adjusted_row.IsActionBlocked();
+                var mo = ground ? Configuration.DefaultMouseoverGround : friendly ? Configuration.DefaultMouseoverFriendly : hostile && Configuration.DefaultMouseoverHostile;
                 var model_mo = friendly && mo ? Configuration.DefaultModelMouseoverFriendly : hostile && mo && Configuration.DefaultModelMouseoverHostile;
 
                 if (CurrentUIMouseover is not null && mo) {
@@ -325,7 +332,7 @@ namespace Redirect {
                     return TryActionHook.Original(action_manager, type, id, nt.ObjectId, param, origin, unk, location);
                 }
 
-                if (Configuration.DefaultCursorMouseover && adjusted_row.TargetArea && !adjusted_row.IsActionBlocked()) {
+                if (Configuration.DefaultCursorMouseover && ground) {
                     CursorStatus cs = ValidateCursorPlacement(action_manager, adjusted_row);
                     if (cs == CursorStatus.OK) {
                         return GroundActionAtCursor(action_manager, type, id, target, param, origin, unk, location);

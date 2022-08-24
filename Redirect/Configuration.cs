@@ -9,9 +9,10 @@ namespace Redirect {
         public int Version { get; set; } = 1;
         public bool DefaultMouseoverFriendly { get; set; } = false;
         public bool DefaultModelMouseoverFriendly { get; set; } = false;
-        public bool DefaultCursorMouseover { get; set; } = false;
         public bool DefaultMouseoverHostile { get; set; } = false;
         public bool DefaultModelMouseoverHostile { get; set; } = false;
+        public bool DefaultMouseoverGround { get; set; } = false;
+        public bool DefaultCursorMouseover { get; set; } = false;
         public bool EnableMacroQueueing { get; set; } = false;
         public bool QueuePotions { get; set; } = false;
         public bool QueueSprint { get; set; } = false;
