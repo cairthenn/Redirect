@@ -70,7 +70,7 @@ namespace Redirect {
             unsafe {
                 var player_ptr = (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)player.Address;
                 var target_ptr = (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)target.Address;
-                err = ActionManager.fpGetActionInRangeOrLoS(a.RowId, player_ptr, target_ptr);
+                err = ActionManager.MemberFunctionPointers.GetActionInRangeOrLoS(a.RowId, player_ptr, target_ptr);
             }
 
             // 0 success, 562 no LOS, 566 range, 565 not facing
