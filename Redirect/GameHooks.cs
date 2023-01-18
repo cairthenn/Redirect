@@ -24,7 +24,7 @@ namespace Redirect {
         };
 
         private const string UIMOSig = "E8 ?? ?? ?? ?? 48 8B 6C 24 58 48 8B 5C 24 50 4C 8B 7C";
-        private const string ActionResourceSig = "E8 ?? ?? ?? ?? 4C 8B E8 48 85 C0 0F 84 ?? ?? ?? ?? 41 83 FE 04";
+        private const string ActionResourceSig = "E8 ?? ?? ?? ?? 80 FB 12";
         private const string GroundActionCheckSig = "E8 ?? ?? ?? ?? 44 8B 83 ?? ?? ?? ?? 4C 8D 4C 24 60";
         private const string GetGroundPlacementSig = "E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4C 8B C3 48 8D 54";
 
@@ -85,8 +85,8 @@ namespace Redirect {
             MouseoverHook = Hook<MouseoverEntityDelegate>.FromAddress(uimo_hook_ptr, OnMouseoverEntityCallback);
 
             unsafe {
-                TryActionHook = Hook<TryActionDelegate>.FromAddress((IntPtr)ActionManager.fpUseAction, TryActionCallback);
-                UseAction = Marshal.GetDelegateForFunctionPointer<UseActionDelegate>((IntPtr)ActionManager.fpUseActionLocation);
+                TryActionHook = Hook<TryActionDelegate>.FromAddress((IntPtr)ActionManager.MemberFunctionPointers.UseAction, TryActionCallback);
+                UseAction = Marshal.GetDelegateForFunctionPointer<UseActionDelegate>((IntPtr)ActionManager.MemberFunctionPointers.UseActionLocation);
             }
 
             UpdateSprintQueueing(Configuration.QueueSprint);
@@ -225,7 +225,7 @@ namespace Redirect {
             origin = origin == 2 && Configuration.EnableMacroQueueing ? 0 : origin;
 
             // Actions placed on bars try to use their base action, so we need to get the upgraded version
-            var adjusted_id = ActionManager.fpGetAdjustedActionId((ActionManager*)action_manager, id);
+            var adjusted_id = ActionManager.MemberFunctionPointers.GetAdjustedActionId((ActionManager*)action_manager, id);
 
             // The action id to match against what's stored in the user config
             var conf_id = original_row!.RowId;
@@ -348,7 +348,7 @@ namespace Redirect {
         }
 
         private unsafe bool GroundActionAtCursor(IntPtr action_manager, ActionType type, uint id, ulong target, uint param, uint origin, uint unk, void* location) {
-            var status = ActionManager.fpGetActionStatus((ActionManager*)action_manager, type, id, (uint)target, 1, 1);
+            var status = ActionManager.MemberFunctionPointers.GetActionStatus((ActionManager*)action_manager, type, id, (uint)target, true, true, null);
 
             if (status != 0 && status != 0x244) {
                 return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
@@ -378,7 +378,7 @@ namespace Redirect {
 
         private unsafe bool GroundActionAtTarget(IntPtr action_manager, ActionType type, uint action, GameObject target, uint param, uint origin, uint unk, void* location) {
 
-            var status = ActionManager.fpGetActionStatus((ActionManager*)action_manager, type, action, target.ObjectId, 1, 1);
+            var status = ActionManager.MemberFunctionPointers.GetActionStatus((ActionManager*)action_manager, type, action, target.ObjectId, true, true, null);
 
             if (status != 0 && status != 0x244) {
                 return TryActionHook.Original(action_manager, type, action, target.ObjectId, param, origin, unk, location);

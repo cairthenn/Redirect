@@ -3,14 +3,14 @@
   <PropertyGroup>
     <Authors></Authors>
     <Company></Company>
-    <Version>1.2.1.1</Version>
+    <Version>1.2.1.2</Version>
     <Description>Action target switching plugin for Dalamud.</Description>
     <Copyright>Cair © 2021 - 2022</Copyright>
     <PackageProjectUrl>https://github.com/cairthenn/Redirect</PackageProjectUrl>
   </PropertyGroup>
 
   <PropertyGroup>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net7.0-windows</TargetFramework>
     <Platforms>x64</Platforms>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
@@ -18,12 +18,13 @@
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 	<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-    <OutputPath>C:\Users\Mark\AppData\Roaming\XIVLauncher\devPlugins\Redirect\</OutputPath>
   </PropertyGroup>
 
   <PropertyGroup>
     <DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
     <AssemblyVersion></AssemblyVersion>
+    <PackageOutputPath />
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
@@ -37,7 +38,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="DalamudPackager" Version="2.1.8" />
+    <PackageReference Include="DalamudPackager" Version="2.1.10" />
     <Reference Include="FFXIVClientStructs">
       <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
       <Private>false</Private>
