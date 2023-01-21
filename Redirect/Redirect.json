@@ -9,6 +9,5 @@
   "InternalName": "Redirect",
   "Name": "Redirect",
   "Punchline": "Change where your actions are going, queue macros, queue sprint, and queue potions!",
-  "RepoUrl": "https://github.com/cairthenn/Redirect",
-  "DalamudApiLevel": 8
+  "RepoUrl": "https://github.com/cairthenn/Redirect"
 }
