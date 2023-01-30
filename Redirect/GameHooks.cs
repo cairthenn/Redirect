@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Runtime.Serialization;
 
 namespace Redirect {
     internal class GameHooks : IDisposable {
@@ -191,8 +192,9 @@ namespace Redirect {
             };
         }
 
-        private unsafe bool TryActionCallback(IntPtr action_manager, ActionType type, uint id, ulong target, uint param, uint origin, uint unk, void* location) {
-
+        private unsafe bool TryActionCallback(IntPtr action_manager, ActionType type, uint id, ulong target, uint param, uint origin, uint unk, void* location) {     
+            
+            
             // Potion dequeueing
             // This picks the item from any available slot, which is the default hotbar method
             if (Configuration.QueuePotions && type == ActionType.Item && origin == 1) {
@@ -234,6 +236,22 @@ namespace Redirect {
             var adjusted_row = Actions.GetRow(adjusted_id);
 
             if (adjusted_row is null || !adjusted_row.HasOptionalTargeting()) {
+                return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
+            }
+
+            // Retain queued actions calculated target
+            if (origin == 1) {
+                if (adjusted_row.TargetArea) {
+
+                    if(target == 0xE0000000) {
+                        return GroundActionAtCursor(action_manager, type, id, target, param, origin, unk, location);
+                    }
+                    else {
+                        GameObject target_obj = Services.ObjectTable.SearchById(target)!;
+                        return GroundActionAtTarget(action_manager, type, id, target_obj, param, origin, unk, location);
+                    }
+                }
+
                 return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
             }
 
