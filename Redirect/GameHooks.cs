@@ -180,6 +180,7 @@ namespace Redirect {
                 "Focus" => TargetManager.FocusTarget,
                 "Target of Target" => TargetManager.Target is { } ? TargetManager.Target.TargetObject : null,
                 "Soft Target" => TargetManager.SoftTarget,
+                "Chocobo" => ResolvePlaceholder("<b>"),
                 "<2>" => ResolvePlaceholder("<2>"),
                 "<3>" => ResolvePlaceholder("<3>"),
                 "<4>" => ResolvePlaceholder("<4>"),

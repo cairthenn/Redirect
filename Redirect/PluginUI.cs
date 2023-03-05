@@ -24,7 +24,7 @@ namespace Redirect {
         private bool SelectedRoleActions = false;
         private Lumina.Excel.GeneratedSheets.ClassJob SelectedJob = null!;
         private string search = string.Empty;
-        private readonly string[] TargetOptions = { "Cursor", "UI Mouseover", "Model Mouseover", "Target", "Focus", "Target of Target", "Self", "Soft Target", "<2>", "<3>", "<4>", "<5>", "<6>", "<7>", "<8>" };
+        private readonly string[] TargetOptions = { "Cursor", "UI Mouseover", "Model Mouseover", "Target", "Focus", "Target of Target", "Self", "Soft Target", "Chocobo", "<2>", "<3>", "<4>", "<5>", "<6>", "<7>", "<8>" };
 
         public PluginUI(Plugin plugin, Configuration config, GameHooks hooks, Actions actions) {
             Plugin = plugin;
