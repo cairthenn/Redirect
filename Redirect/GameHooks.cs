@@ -241,7 +241,7 @@ namespace Redirect {
 
             // Retain queued actions calculated target
             if (origin == 1) {
-                if (adjusted_row.TargetArea) {
+                if (adjusted_row.TargetArea && !adjusted_row.IsActionBlocked()) {
 
                     if(target == 0xE0000000) {
                         return GroundActionAtCursor(action_manager, type, id, target, param, origin, unk, location);
