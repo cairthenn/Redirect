@@ -24,7 +24,8 @@ namespace Redirect {
             { CursorStatus.INVALID, "Invalid target." },
         };
 
-        private const string UIMOSig = "E8 ?? ?? ?? ?? 48 8B 6C 24 58 48 8B 5C 24 50 4C 8B 7C";
+        private const uint DEFAULT_TARGET = 0xE0000000;
+        private const string UIMOSig = "E8 ?? ?? ?? ?? 48 8B 5C 24 40 4C 8B 74 24 58 83 FD 02";
         private const string ActionResourceSig = "E8 ?? ?? ?? ?? 80 FB 12";
         private const string GroundActionCheckSig = "E8 ?? ?? ?? ?? 44 8B 83 ?? ?? ?? ?? 4C 8D 4C 24 60";
         private const string GetGroundPlacementSig = "E8 ?? ?? ?? ?? 84 C0 0F 84 ?? ?? ?? ?? 4C 8B C3 48 8D 54";
@@ -243,7 +244,10 @@ namespace Redirect {
             if (origin == 1) {
                 if (adjusted_row.TargetArea && !adjusted_row.IsActionBlocked()) {
 
-                    if(target == 0xE0000000) {
+                    // Ground targeted actions should not normally reach the queue
+                    // Assume cursor placement is intended if no target is specified
+
+                    if(target == DEFAULT_TARGET) {
                         return GroundActionAtCursor(action_manager, type, id, target, param, origin, unk, location);
                     }
                     else {
@@ -380,7 +384,7 @@ namespace Redirect {
                     return false;
                 }
 
-                return TryQueueAction(action_manager, id, param, type, target);
+                return TryQueueAction(action_manager, id, param, type, DEFAULT_TARGET);
             }
 
             float[] loc = new float[6];
