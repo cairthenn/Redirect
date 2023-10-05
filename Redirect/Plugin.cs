@@ -1,9 +1,9 @@
-﻿using Dalamud.Data;
-using Dalamud.Game.Command;
+﻿using Dalamud.Game.Command;
 using Dalamud.IoC;
 using Dalamud.Logging;
 using Dalamud.Plugin;
 using System;
+using Dalamud.Plugin.Services;
 
 namespace Redirect {
     public class Plugin : IDalamudPlugin, IDisposable {
@@ -15,8 +15,8 @@ namespace Redirect {
         private Actions Actions { get; } = null!;
         private GameHooks Hooks { get; } = null!;
         public static DalamudPluginInterface Interface => Services.Interface;
-        public static DataManager DataManager => Services.DataManager;
-        public static CommandManager CommandManager => Services.CommandManager;
+        public static IDataManager DataManager => Services.DataManager;
+        public static ICommandManager CommandManager => Services.CommandManager;
 
 
         public Plugin([RequiredVersion("1.0")] DalamudPluginInterface i) {
