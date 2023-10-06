@@ -179,7 +179,7 @@ namespace Redirect {
         private IDalamudTextureWrap? FetchTexture(ushort id) {
             Icons.TryGetValue(id, out IDalamudTextureWrap? texture);
 
-            if (texture is null && id > 0) {;
+            if (texture is null && id > 0) {
                 texture = Services.TextureProvider.GetIcon(id);
                 if (texture is not null) {
                     Icons[id] = texture;
