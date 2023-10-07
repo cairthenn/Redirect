@@ -111,7 +111,7 @@ namespace Redirect {
 
         public void UpdateSprintQueueing(bool enable) {
             var row = GetActionRowPtr(3);
-            var type = enable ? ActionType.Ability : ActionType.MainCommand;
+            var type = enable ? ActionType.Ability : ActionType.Unk_10;
             Dalamud.SafeMemory.Write(row + 0x20, (byte)type);
         }
 
