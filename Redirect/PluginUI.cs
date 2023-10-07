@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Numerics;
 using ImGuiNET;
-using ImGuiScene;
 using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Interface;
+using Dalamud.Interface.Internal;
 
 namespace Redirect {
     class PluginUI : IDisposable {
@@ -18,7 +18,7 @@ namespace Redirect {
         private Actions Actions { get; } = null!;
 
         private List<Lumina.Excel.GeneratedSheets.ClassJob> Jobs => Actions.GetJobInfo();
-        private Dictionary<ushort, TextureWrap> Icons { get; } = new();
+        private Dictionary<ushort, IDalamudTextureWrap> Icons { get; } = new();
 
         internal bool MainWindowVisible = false;
         private bool SelectedRoleActions = false;
@@ -176,11 +176,11 @@ namespace Redirect {
             ImGui.End();
         }
 
-        private TextureWrap? FetchTexture(ushort id) {
-            Icons.TryGetValue(id, out TextureWrap? texture);
+        private IDalamudTextureWrap? FetchTexture(ushort id) {
+            Icons.TryGetValue(id, out IDalamudTextureWrap? texture);
 
             if (texture is null && id > 0) {
-                texture = Plugin.DataManager.GetImGuiTextureIcon(id);
+                texture = Services.TextureProvider.GetIcon(id);
                 if (texture is not null) {
                     Icons[id] = texture;
                 }

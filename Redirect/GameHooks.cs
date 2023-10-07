@@ -1,7 +1,6 @@
 ﻿using Dalamud.Game;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Game.Gui.Toast;
 using Dalamud.Hooking;
 using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.Game;
@@ -9,7 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
+using Dalamud.Plugin.Services;
 
 namespace Redirect {
     internal class GameHooks : IDisposable {
@@ -32,9 +31,9 @@ namespace Redirect {
 
         private Configuration Configuration { get; } = null!;
         private Actions Actions { get; } = null!;
-        private static TargetManager TargetManager => Services.TargetManager;
-        private static SigScanner SigScanner => Services.SigScanner;
-        private static ToastGui ToastGui => Services.ToastGui;
+        private static ITargetManager TargetManager => Services.TargetManager;
+        private static ISigScanner SigScanner => Services.SigScanner;
+        private static IToastGui ToastGui => Services.ToastGui;
 
         // param is the same in both functions,
         // 65535 can be observed for older food,
@@ -84,10 +83,10 @@ namespace Redirect {
 
             var uimo_offset = Dalamud.Memory.MemoryHelper.Read<int>(uimo_ptr + 1);
             var uimo_hook_ptr = uimo_ptr + 5 + uimo_offset;
-            MouseoverHook = Hook<MouseoverEntityDelegate>.FromAddress(uimo_hook_ptr, OnMouseoverEntityCallback);
+            MouseoverHook = Services.InteropProvider.HookFromAddress<MouseoverEntityDelegate>(uimo_hook_ptr, OnMouseoverEntityCallback);
 
             unsafe {
-                TryActionHook = Hook<TryActionDelegate>.FromAddress((IntPtr)ActionManager.MemberFunctionPointers.UseAction, TryActionCallback);
+                TryActionHook = Services.InteropProvider.HookFromAddress<TryActionDelegate>((IntPtr)ActionManager.MemberFunctionPointers.UseAction, TryActionCallback);
                 UseAction = Marshal.GetDelegateForFunctionPointer<UseActionDelegate>((IntPtr)ActionManager.MemberFunctionPointers.UseActionLocation);
             }
 
@@ -118,7 +117,7 @@ namespace Redirect {
 
         public void UpdatePotionQueueing(bool enable) {
             var row = GetActionRowPtr(846);
-            var type = enable ? ActionType.Ability : ActionType.General;
+            var type = enable ? ActionType.Ability : ActionType.GeneralAction;
             Dalamud.SafeMemory.Write(row + 0x20, (byte)type);
         }
 
@@ -146,7 +145,7 @@ namespace Redirect {
             bool[] results = new bool[4];
             unsafe {
                 fixed (bool* p = results) {
-                    GroundActionValid(action_manager, action.RowId, ActionType.Spell, p);
+                    GroundActionValid(action_manager, action.RowId, ActionType.Action, p);
                 }
 
                 if (results[0] && results[1]) {
@@ -203,14 +202,14 @@ namespace Redirect {
             }
 
             // Special sprint handling
-            if (Configuration.QueueSprint && type == ActionType.General && id == 4) {
-                return TryActionHook.Original(action_manager, ActionType.Spell, 3, target, param, origin, unk, location);
+            if (Configuration.QueueSprint && type == ActionType.GeneralAction && id == 4) {
+                return TryActionHook.Original(action_manager, ActionType.Action, 3, target, param, origin, unk, location);
             }
 
             // This is NOT the same classification as the item's resource, but a more generic version
             // Every spell, ability, and weaponskill (even sprint, which is a "main command"), gets called with
             // the designation of "Spell" (1). Thus, we can avoid most tomfoolery by returning early
-            if (type != ActionType.Spell) {
+            if (type != ActionType.Action) {
                 return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
             }
 
