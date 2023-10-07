@@ -23,7 +23,9 @@ namespace Redirect {
             { CursorStatus.INVALID, "Invalid target." },
         };
 
-        private const uint DEFAULT_TARGET = 0xE0000000;
+        private const int SprintID = 3;
+        private const int PotionID = 846;
+        private const uint DefaultTarget = 0xE0000000;
         private const string UIMOSig = "E8 ?? ?? ?? ?? 48 8B 5C 24 40 4C 8B 74 24 58 83 FD 02";
         private const string ActionResourceSig = "E8 ?? ?? ?? ?? 80 FB 12";
         private const string GroundActionCheckSig = "E8 ?? ?? ?? ?? 44 8B 83 ?? ?? ?? ?? 4C 8D 4C 24 60";
@@ -34,11 +36,6 @@ namespace Redirect {
         private static ITargetManager TargetManager => Services.TargetManager;
         private static ISigScanner SigScanner => Services.SigScanner;
         private static IToastGui ToastGui => Services.ToastGui;
-
-        // param is the same in both functions,
-        // 65535 can be observed for older food,
-        // for teleports it is aertheryte ID,
-        // generally 0
 
         private unsafe delegate bool TryActionDelegate(IntPtr tp, ActionType t, uint id, ulong target, uint param, uint origin, uint unk, void* l);
         private unsafe delegate bool UseActionDelegate(IntPtr tp, ActionType t, uint id, ulong target, Vector3* l, uint param = 0);
@@ -53,6 +50,10 @@ namespace Redirect {
         private readonly GroundActionValidDelegate GroundActionValid = null!;
         private readonly GetGroundPlacementDelegate GetGroundPlacement = null!;
         private volatile GameObject? CurrentUIMouseover = null!;
+
+        private const byte AbilityActionCategory = 4;
+        private static byte SprintActionCategory = 0;
+        private static byte ItemActionCategory = 0;
 
         public GameHooks(Configuration config, Actions actions) {
             Configuration = config;
@@ -93,6 +94,13 @@ namespace Redirect {
             UpdateSprintQueueing(Configuration.QueueSprint);
             UpdatePotionQueueing(Configuration.QueuePotions);
 
+            // Get Sprint's default ActionCategory
+            var srow = GetActionRowPtr(SprintID);
+            Dalamud.SafeMemory.Read(srow + 0x20, out SprintActionCategory);
+            // Get Potion's default ActionCategory
+            var irow = GetActionRowPtr(PotionID);
+            Dalamud.SafeMemory.Read(irow + 0x20, out ItemActionCategory);
+
             TryActionHook.Enable();
             MouseoverHook.Enable();
         }
@@ -110,15 +118,24 @@ namespace Redirect {
         // 0x40:    Name
 
         public void UpdateSprintQueueing(bool enable) {
-            var row = GetActionRowPtr(3);
-            var type = enable ? ActionType.Ability : ActionType.Unk_10;
-            Dalamud.SafeMemory.Write(row + 0x20, (byte)type);
+            if (SprintActionCategory == 0) {
+                return;
+            }
+
+            var row = GetActionRowPtr(SprintID);
+            var type = enable ? AbilityActionCategory : SprintActionCategory;
+            Dalamud.SafeMemory.Write(row + 0x20, type);
         }
 
         public void UpdatePotionQueueing(bool enable) {
-            var row = GetActionRowPtr(846);
-            var type = enable ? ActionType.Ability : ActionType.GeneralAction;
-            Dalamud.SafeMemory.Write(row + 0x20, (byte)type);
+            if (ItemActionCategory == 0) {
+                return;
+            }
+
+            var row = GetActionRowPtr(PotionID);
+            var type = enable ? AbilityActionCategory : ItemActionCategory;
+
+            Dalamud.SafeMemory.Write(row + 0x20, type);
         }
 
         private static bool TryQueueAction(IntPtr action_manager, uint id, uint param, ActionType action_type, ulong target_id) {
@@ -196,19 +213,17 @@ namespace Redirect {
             
             
             // Potion dequeueing
-            // This picks the item from any available slot, which is the default hotbar method
+            // This param (-1) picks the item from any available slot, which is the default hotbar method
             if (Configuration.QueuePotions && type == ActionType.Item && origin == 1) {
                 param = 65535;
             }
 
             // Special sprint handling
             if (Configuration.QueueSprint && type == ActionType.GeneralAction && id == 4) {
-                return TryActionHook.Original(action_manager, ActionType.Action, 3, target, param, origin, unk, location);
+                return TryActionHook.Original(action_manager, ActionType.Action, SprintID, target, param, origin, unk, location);
             }
 
-            // This is NOT the same classification as the item's resource, but a more generic version
-            // Every spell, ability, and weaponskill (even sprint, which is a "main command"), gets called with
-            // the designation of "Spell" (1). Thus, we can avoid most tomfoolery by returning early
+            // This is NOT the same classification as the action's ActionCategory
             if (type != ActionType.Action) {
                 return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
             }
@@ -246,7 +261,7 @@ namespace Redirect {
                     // Ground targeted actions should not normally reach the queue
                     // Assume cursor placement is intended if no target is specified
 
-                    if(target == DEFAULT_TARGET) {
+                    if(target == DefaultTarget) {
                         return GroundActionAtCursor(action_manager, type, id, target, param, origin, unk, location);
                     }
                     else {
@@ -383,7 +398,7 @@ namespace Redirect {
                     return false;
                 }
 
-                return TryQueueAction(action_manager, id, param, type, DEFAULT_TARGET);
+                return TryQueueAction(action_manager, id, param, type, DefaultTarget);
             }
 
             float[] loc = new float[6];
