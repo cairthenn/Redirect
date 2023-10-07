@@ -91,15 +91,15 @@ namespace Redirect {
                 UseAction = Marshal.GetDelegateForFunctionPointer<UseActionDelegate>((IntPtr)ActionManager.MemberFunctionPointers.UseActionLocation);
             }
 
-            UpdateSprintQueueing(Configuration.QueueSprint);
-            UpdatePotionQueueing(Configuration.QueuePotions);
-
             // Get Sprint's default ActionCategory
             var srow = GetActionRowPtr(SprintID);
             Dalamud.SafeMemory.Read(srow + 0x20, out SprintActionCategory);
             // Get Potion's default ActionCategory
             var irow = GetActionRowPtr(PotionID);
             Dalamud.SafeMemory.Read(irow + 0x20, out ItemActionCategory);
+
+            UpdateSprintQueueing(Configuration.QueueSprint);
+            UpdatePotionQueueing(Configuration.QueuePotions);
 
             TryActionHook.Enable();
             MouseoverHook.Enable();
