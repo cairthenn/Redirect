@@ -18,7 +18,6 @@ namespace Redirect {
         private Actions Actions { get; } = null!;
 
         private List<Lumina.Excel.GeneratedSheets.ClassJob> Jobs => Actions.GetJobInfo();
-        private Dictionary<ushort, IDalamudTextureWrap> Icons { get; } = new();
 
         internal bool MainWindowVisible = false;
         private bool SelectedRoleActions = false;
@@ -42,9 +41,6 @@ namespace Redirect {
         public void Dispose() {
             Plugin.Interface.UiBuilder.OpenConfigUi -= OnOpenConfig;
             Plugin.Interface.UiBuilder.Draw -= Draw;
-            foreach (var icon in Icons.Values) {
-                icon.Dispose();
-            }
         }
 
         public void Draw() {
@@ -176,21 +172,8 @@ namespace Redirect {
             ImGui.End();
         }
 
-        private IDalamudTextureWrap? FetchTexture(ushort id) {
-            Icons.TryGetValue(id, out IDalamudTextureWrap? texture);
-
-            if (texture is null && id > 0) {
-                texture = Services.TextureProvider.GetIcon(id);
-                if (texture is not null) {
-                    Icons[id] = texture;
-                }
-            }
-
-            return texture;
-        }
-
         private void DrawIcon(ushort id, Vector2 size = default) {
-            var texture = FetchTexture(id);
+            var texture = Services.TextureProvider.GetIcon(id);
 
             if (texture is null) {
                 return;

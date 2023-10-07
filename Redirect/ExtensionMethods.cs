@@ -56,7 +56,7 @@ namespace Redirect {
                 case ObjectKind.Companion:
                     return a.CanTargetFriendly();
                 default:
-                    PluginLog.Information($"{a.Name} cannot be used on {target.Name} with type {target.ObjectKind}");
+                    Services.PluginLog.Information($"{a.Name} cannot be used on {target.Name} with type {target.ObjectKind}");
                     return false;
             }
         }

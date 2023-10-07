@@ -26,7 +26,7 @@ namespace Redirect {
                 Configuration = Interface.GetPluginConfig() as Configuration ?? new Configuration();
             }
             catch (Exception) {
-                PluginLog.Error("Failed to load plugin configuration. A new configuration file has been created.");
+                Services.PluginLog.Error("Failed to load plugin configuration. A new configuration file has been created.");
                 Configuration = new Configuration();
             }
 

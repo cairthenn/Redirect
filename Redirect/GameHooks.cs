@@ -64,7 +64,7 @@ namespace Redirect {
             var gp_ptr = SigScanner.ScanModule(GetGroundPlacementSig);
 
             if (uimo_ptr == IntPtr.Zero || actionres_ptr == IntPtr.Zero || groundaction_ptr == IntPtr.Zero || gp_ptr == IntPtr.Zero) {
-                PluginLog.Error("Error during game hook initialization, plugin functionality is disabled.");
+                Services.PluginLog.Error("Error during game hook initialization, plugin functionality is disabled.");
                 return;
             }
 
@@ -167,7 +167,7 @@ namespace Redirect {
                 var p = (IntPtr)pm->ResolvePlaceholder(ph, 0, 0);
                 return Services.ObjectTable.CreateObjectReference(p);
             } catch (Exception ex){
-                PluginLog.Error($"Unable to resolve pronoun ({ph}): {ex.Message}");
+                Services.PluginLog.Error($"Unable to resolve pronoun ({ph}): {ex.Message}");
                 return null;
             }
         }
