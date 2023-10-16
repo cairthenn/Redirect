@@ -189,12 +189,12 @@ namespace Redirect {
             }
         }
 
-        public GameObject? ResolveTarget(string target) {
-            return target switch {
+        public GameObject? ResolveTarget(string targetOption, ulong originalTarget) {
+            return targetOption switch {
                 "UI Mouseover" => CurrentUIMouseover,
                 "Model Mouseover" => TargetManager.MouseOverTarget,
                 "Self" => Services.ClientState.LocalPlayer,
-                "Target" => TargetManager.Target,
+                "Target" => Services.ObjectTable.SearchById(originalTarget) ?? TargetManager.Target,
                 "Focus" => TargetManager.FocusTarget,
                 "Target of Target" => TargetManager.Target is { } ? TargetManager.Target.TargetObject : null,
                 "Soft Target" => TargetManager.SoftTarget,
@@ -293,7 +293,7 @@ namespace Redirect {
                         }
                     }
                     else {
-                        GameObject? nt = ResolveTarget(t);
+                        GameObject? nt = ResolveTarget(t, target);
                         if (nt is not null) {
                             bool ok = adjusted_row.TargetInRangeAndLOS(nt, out var err);
                             bool tt_ok = adjusted_row.TargetTypeValid(nt);
