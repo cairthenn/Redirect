@@ -237,10 +237,6 @@ namespace Redirect {
                 return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
             }
 
-            // Macro queueing
-            // Known origins : 0 - bar, 1 - queue, 2 - macro
-            origin = origin == 2 && Configuration.EnableMacroQueueing ? 0 : origin;
-
             // Actions placed on bars try to use their base action, so we need to get the upgraded version
             var adjusted_id = ActionManager.MemberFunctionPointers.GetAdjustedActionId((ActionManager*)action_manager, id);
 
@@ -249,6 +245,18 @@ namespace Redirect {
 
             // The actual action that will be used
             var adjusted_row = Actions.GetRow(adjusted_id);
+
+            // Macro queueing with instant exit if it cannot be cast
+            // Known origins : 0 - bar, 1 - queue, 2 - macro
+            if (origin == 2 && Configuration.EnableMacroQueueing) {
+                // Check status, ignoring all cooldowns, just checking if it's available or not.
+                var status = ActionManager.MemberFunctionPointers.GetActionStatus((ActionManager*)action_manager, type, adjusted_id, (uint)target, false, false, null);
+                // Do NOT queue if it's unavailable.
+                if (status == 572) {
+                    return false;
+                }
+                origin = 0;
+            }
 
             if (adjusted_row is null || !adjusted_row.HasOptionalTargeting()) {
                 return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
