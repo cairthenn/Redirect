@@ -296,7 +296,7 @@ namespace Redirect {
                 }
 
                 if (adjusted_row.TargetArea && suppress_target_ring) {
-                    ToastGui.ShowError("Unable to place action at cursor location.");
+                    ToastGui.ShowError("Invalid target.");
                     return false;
                 }
 
@@ -349,7 +349,7 @@ namespace Redirect {
                         return GroundActionAtCursor(action_manager, type, id, target, param, origin, unk, &loc);
                     }
 
-                    ToastGui.ShowError("Unable to place action at cursor location.");
+                    ToastGui.ShowError("Invalid target.");
                     return false;
                 }
             }
