@@ -14,10 +14,6 @@ using FFXIVClientStructs.FFXIV.Client.Game.Object;
 namespace Redirect {
     internal class GameHooks : IDisposable {
 
-        internal enum CursorStatus {
-            OK, RANGE, INVALID
-        }
-
         private const int SprintID = 3;
         private const int PotionID = 846;
         private const uint DefaultTarget = 0xE0000000;
@@ -397,6 +393,7 @@ namespace Redirect {
 
         public void Dispose() {
             TryActionHook?.Dispose();
+            MouseoverHook?.Dispose();
             UpdatePotionQueueing(false);
             UpdateSprintQueueing(false);
         }
