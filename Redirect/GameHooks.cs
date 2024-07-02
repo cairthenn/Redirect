@@ -10,6 +10,8 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.GeneratedSheets2;
 
 namespace Redirect {
     internal class GameHooks : IDisposable {
@@ -118,6 +120,8 @@ namespace Redirect {
             if (queue_full > 0) {
                 return false;
             }
+
+            Services.PluginLog.Info("Queueing Action");
 
             // This is how the game queues actions within the "TryAction" function
             // There is no separate function for it, it simply updates variables
@@ -361,9 +365,10 @@ namespace Redirect {
             }
 
             Dalamud.SafeMemory.Read(action_manager + 0x08, out float animation_timer);
+            var action_row = Actions.GetRow(action)!;
 
             if (status == 0x244 || animation_timer > 0) {
-                if (!Configuration.QueueGroundActions) {
+                if (!Configuration.QueueGroundActions || action_row.ActionCategory.Value?.RowId != AbilityActionCategory) {
                     ToastGui.ShowError("Cannot use while casting.");
                     return false;
                 }
@@ -371,10 +376,9 @@ namespace Redirect {
                 return TryQueueAction(action_manager, action, param, type, DefaultTarget);
             }
 
-            var action_row = Actions.GetRow(action);
             var distance = DistanceFromPlayer(*location);
-
-            if (distance > action_row?.Range) {
+       
+            if (distance > action_row.Range) {
                 ToastGui.ShowError("Target is not in range.");
                 return false;
             }
@@ -392,9 +396,11 @@ namespace Redirect {
             }
 
             Dalamud.SafeMemory.Read(action_manager + 0x08, out float animation_timer);
+            var action_row = Actions.GetRow(action)!;
 
             if (status == 0x244 || animation_timer > 0) {
-                if (!Configuration.QueueGroundActions) {
+
+                if (!Configuration.QueueGroundActions || action_row.ActionCategory.Value?.RowId != AbilityActionCategory) {
                     ToastGui.ShowError("Cannot use while casting.");
                     return false;
                 }
@@ -403,10 +409,9 @@ namespace Redirect {
             }
 
             var new_location = target.Position;
-            var action_row = Actions.GetRow(action);
             var distance = DistanceFromPlayer(new_location);
 
-            if (distance > action_row?.Range) {
+            if (distance > action_row.Range) {
                 ToastGui.ShowError("Target is not in range.");
                 return false;
             }
