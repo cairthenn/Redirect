@@ -14,12 +14,12 @@ namespace Redirect {
         private PluginUI PluginUi { get; } = null!;
         private Actions Actions { get; } = null!;
         private GameHooks Hooks { get; } = null!;
-        public static DalamudPluginInterface Interface => Services.Interface;
+        public static IDalamudPluginInterface Interface => Services.Interface;
         public static IDataManager DataManager => Services.DataManager;
         public static ICommandManager CommandManager => Services.CommandManager;
 
 
-        public Plugin([RequiredVersion("1.0")] DalamudPluginInterface i) {
+        public Plugin(IDalamudPluginInterface i) {
             Services.Initialize(i);
 
             try {

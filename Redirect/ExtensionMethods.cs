@@ -41,7 +41,7 @@ namespace Redirect {
 
         public static bool CanTargetFriendly(this Action a) => a.CanTargetFriendly || a.CanTargetParty;
 
-        public static bool TargetTypeValid(this Action a, GameObject target) {
+        public static bool TargetTypeValid(this Action a, IGameObject target) {
 
             if(a.TargetArea) {
                 return true;
@@ -49,7 +49,7 @@ namespace Redirect {
 
             switch (target.ObjectKind) {
                 case ObjectKind.BattleNpc:
-                    BattleNpc npc = (BattleNpc)target;
+                    IBattleNpc npc = (IBattleNpc)target;
                     return npc.BattleNpcKind == BattleNpcSubKind.Enemy ? a.CanTargetHostile : a.CanTargetFriendly();
                 case ObjectKind.EventNpc:
                 case ObjectKind.Player:
@@ -61,7 +61,7 @@ namespace Redirect {
             }
         }
 
-        public static bool TargetInRangeAndLOS(this Action a, GameObject target, out uint err) {
+        public static bool TargetInRangeAndLOS(this Action a, IGameObject target, out uint err) {
             if (Services.ClientState.LocalPlayer is not { } player) {
                 err = 0;
                 return false;

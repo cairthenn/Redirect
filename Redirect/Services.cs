@@ -3,12 +3,11 @@ using Dalamud.Game.ClientState.Objects;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using Dalamud.Interface.Utility;
+using Dalamud.Interface;
 
 namespace Redirect {
     public class Services {
-        [PluginService]
-        public static DalamudPluginInterface Interface { get; private set; } = null!;
+        [PluginService] public static IDalamudPluginInterface Interface { get; private set; } = null!;
 
         [PluginService] public static IPluginLog PluginLog { get; private set; } = null!;
 
@@ -30,7 +29,7 @@ namespace Redirect {
 
         [PluginService] public static IGameInteropProvider InteropProvider { get; private set; } = null!;
 
-        public static void Initialize(DalamudPluginInterface i) {
+        public static void Initialize(IDalamudPluginInterface i) {
             i.Create<Services>();
         }
     }

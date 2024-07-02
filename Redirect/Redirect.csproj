@@ -3,14 +3,14 @@
   <PropertyGroup>
     <Authors></Authors>
     <Company></Company>
-    <Version>1.2.2.2</Version>
+    <Version>1.2.3.0</Version>
     <Description>Action target switching plugin for Dalamud.</Description>
     <Copyright>Cair © 2021 - 2023</Copyright>
     <PackageProjectUrl>https://github.com/cairthenn/Redirect</PackageProjectUrl>
   </PropertyGroup>
 
   <PropertyGroup>
-    <TargetFramework>net7.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
     <Platforms>x64</Platforms>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
@@ -73,7 +73,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="DalamudPackager" Version="2.1.12" />
+    <PackageReference Include="DalamudPackager" Version="2.1.13" />
   </ItemGroup>
 
 </Project>

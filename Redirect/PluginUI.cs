@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Interface;
 using Dalamud.Interface.Internal;
+using Dalamud.Interface.Textures;
 
 namespace Redirect {
     class PluginUI : IDisposable {
@@ -173,14 +174,16 @@ namespace Redirect {
         }
 
         private void DrawIcon(ushort id, Vector2 size = default) {
-            var texture = Services.TextureProvider.GetIcon(id);
+            var icon = new GameIconLookup(id);
+            var texture = Services.TextureProvider.GetFromGameIcon(icon);
+            var wrap = texture.GetWrapOrDefault();
 
-            if (texture is null) {
+            if (wrap is null) {
                 return;
             }
 
-            var drawsize = size == default ? new Vector2(texture.Width, texture.Height) : size;
-            ImGui.Image(texture.ImGuiHandle, drawsize);
+            var drawsize = size == default ? new Vector2(wrap.Width, wrap.Height) : size;
+            ImGui.Image(wrap.ImGuiHandle, drawsize);
         }
 
         private void DrawActions() {
