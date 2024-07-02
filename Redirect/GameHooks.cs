@@ -2,16 +2,11 @@
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Hooking;
-using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using System;
-using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
-using Lumina.Excel.GeneratedSheets;
-using Lumina.Excel.GeneratedSheets2;
 
 namespace Redirect {
     internal class GameHooks : IDisposable {
@@ -120,8 +115,6 @@ namespace Redirect {
             if (queue_full > 0) {
                 return false;
             }
-
-            Services.PluginLog.Info("Queueing Action");
 
             // This is how the game queues actions within the "TryAction" function
             // There is no separate function for it, it simply updates variables
