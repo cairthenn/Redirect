@@ -17,8 +17,10 @@ namespace Redirect {
         };
 
         private static readonly HashSet<uint> ActionAllowlist = new() {
-            17055, // "Play",
             25822, // "Astral Flow",
+            37019, // "Play I",
+            37020, // "Play II",
+            37021, // "Play III",
         };
 
         /// <summary>
