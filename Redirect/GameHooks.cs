@@ -165,6 +165,16 @@ namespace Redirect {
             };
         }
 
+        public double DistanceFromPlayer(Vector3 v) {
+
+            var player = Services.ClientState.LocalPlayer;
+            if (player is null) {
+                return double.PositiveInfinity;
+            }
+
+            return Vector3.Distance(player.Position, v);
+        }
+
         private unsafe bool TryActionCallback(IntPtr action_manager, ActionType type, uint id, ulong target, uint param, uint origin, uint unk, Vector3* location) {     
             
             
@@ -218,7 +228,11 @@ namespace Redirect {
                     // Assume cursor placement is intended if no target is specified
 
                     if(target == DefaultTarget) {
-                        return GroundActionAtCursor(action_manager, type, id, target, param, origin, unk, location);
+                        Vector3 loc;
+                        var success = ActionManager.MemberFunctionPointers.GetGroundPositionForCursor((ActionManager*)action_manager, &loc);
+                        if(success) {
+                            return GroundActionAtCursor(action_manager, type, id, target, param, origin, unk, &loc);
+                        }
                     }
                     else {
                         IGameObject target_obj = Services.ObjectTable.SearchById(target)!;
@@ -243,7 +257,6 @@ namespace Redirect {
                     if (t == "Cursor" && adjusted_row.TargetArea) {
                         suppress_target_ring = true;
                         Vector3 loc;
-                        
                         var success = ActionManager.MemberFunctionPointers.GetGroundPositionForCursor((ActionManager*)action_manager, &loc);
                         if (success) {
                             return GroundActionAtCursor(action_manager, type, id, target, param, origin, unk, &loc);
@@ -340,11 +353,11 @@ namespace Redirect {
             return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
         }
 
-        private unsafe bool GroundActionAtCursor(IntPtr action_manager, ActionType type, uint id, ulong target, uint param, uint origin, uint unk, Vector3* location) {
-            var status = ActionManager.MemberFunctionPointers.GetActionStatus((ActionManager*)action_manager, type, id, (uint)target, true, true, null);
+        private unsafe bool GroundActionAtCursor(IntPtr action_manager, ActionType type, uint action, ulong target, uint param, uint origin, uint unk, Vector3* location) {
+            var status = ActionManager.MemberFunctionPointers.GetActionStatus((ActionManager*)action_manager, type, action, (uint)target, true, true, null);
 
             if (status != 0 && status != 0x244) {
-                return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
+                return TryActionHook.Original(action_manager, type, action, target, param, origin, unk, location);
             }
 
             Dalamud.SafeMemory.Read(action_manager + 0x08, out float animation_timer);
@@ -355,10 +368,18 @@ namespace Redirect {
                     return false;
                 }
 
-                return TryQueueAction(action_manager, id, param, type, DefaultTarget);
+                return TryQueueAction(action_manager, action, param, type, DefaultTarget);
             }
-   
-            return UseAction(action_manager, type, id, target, location, param);
+
+            var action_row = Actions.GetRow(action);
+            var distance = DistanceFromPlayer(*location);
+
+            if (distance > action_row?.Range) {
+                ToastGui.ShowError("Target is not in range.");
+                return false;
+            }
+
+            return UseAction(action_manager, type, action, target, location, param);
         }
 
         private unsafe bool GroundActionAtTarget(IntPtr action_manager, ActionType type, uint action, IGameObject target, uint param, uint origin, uint unk, Vector3* location) {
@@ -382,6 +403,13 @@ namespace Redirect {
             }
 
             var new_location = target.Position;
+            var action_row = Actions.GetRow(action);
+            var distance = DistanceFromPlayer(new_location);
+
+            if (distance > action_row?.Range) {
+                ToastGui.ShowError("Target is not in range.");
+                return false;
+            }
 
             return UseAction(action_manager, type, action, target.GameObjectId, &new_location);
         }

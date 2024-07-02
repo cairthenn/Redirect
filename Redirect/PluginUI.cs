@@ -4,7 +4,6 @@ using ImGuiNET;
 using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Interface;
-using Dalamud.Interface.Internal;
 using Dalamud.Interface.Textures;
 
 namespace Redirect {

@@ -3,7 +3,6 @@ using Dalamud.Game.ClientState.Objects;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using Dalamud.Interface;
 
 namespace Redirect {
     public class Services {

@@ -1,6 +1,4 @@
 ﻿using Dalamud.Game.Command;
-using Dalamud.IoC;
-using Dalamud.Logging;
 using Dalamud.Plugin;
 using System;
 using Dalamud.Plugin.Services;
