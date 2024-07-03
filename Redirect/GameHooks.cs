@@ -304,11 +304,11 @@ namespace Redirect {
                 var mo = ground ? Configuration.DefaultMouseoverGround : friendly ? Configuration.DefaultMouseoverFriendly : hostile && Configuration.DefaultMouseoverHostile;
                 var model_mo = friendly && mo ? Configuration.DefaultModelMouseoverFriendly : hostile && mo && Configuration.DefaultModelMouseoverHostile;
 
-                if (TargetManager.MouseOverNameplateTarget is not null && mo) {
-                    bool ok = adjusted_row.TargetInRangeAndLOS(TargetManager.MouseOverNameplateTarget, out var err);
-                    bool tt_ok = adjusted_row.TargetTypeValid(TargetManager.MouseOverNameplateTarget);
+                if (CurrentUIMouseover is not null && mo) {
+                    bool ok = adjusted_row.TargetInRangeAndLOS(CurrentUIMouseover, out var err);
+                    bool tt_ok = adjusted_row.TargetTypeValid(CurrentUIMouseover);
                     if (ok && tt_ok) {
-                        nt = TargetManager.MouseOverNameplateTarget;
+                        nt = CurrentUIMouseover;
                     }
                     else if (!Configuration.IgnoreErrors) {
                         ToastGui.ShowError(ok ? "Invalid target." : "Target is not in range.");
