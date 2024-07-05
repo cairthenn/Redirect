@@ -51,6 +51,7 @@ The following are currently supported options:
  * `Target`: Your current target
  * `Focus`: Your current focus target
  * `Target of Target`: Your target's target
+ * `Chocobo`: Your chocobo companion
  * `<2>` through `<8>`: Party member 2-8
 
 ### Why can I add more than one target option to a single action?
