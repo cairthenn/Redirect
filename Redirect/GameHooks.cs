@@ -7,14 +7,15 @@ using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 
 namespace Redirect {
     internal class GameHooks : IDisposable {
 
         private const int SprintID = 3;
         private const int PotionID = 846;
+        private const int StarryMuseID = 34675;
         private const uint DefaultTarget = 0xE0000000;
-        private const string UIMOSig = "E8 ?? ?? ?? ?? 48 8B 7C 24 50 4C 8B 74 24 58 83 FD 02";
         private const string ActionResourceSig = "E8 ?? ?? ?? ?? 80 FB 12";
 
         private Configuration Configuration { get; } = null!;
@@ -27,38 +28,31 @@ namespace Redirect {
         private unsafe delegate bool UseActionDelegate(IntPtr tp, ActionType t, uint id, ulong target, Vector3* l, uint param = 0);
         private delegate IntPtr GetActionRowPtrDelegate(int id);
         private delegate void MouseoverEntityDelegate(IntPtr t, IntPtr entity);
-        private readonly Hook<TryActionDelegate> TryActionHook = null!;
-        private readonly Hook<MouseoverEntityDelegate> MouseoverHook = null!;
+        private readonly Hook<TryActionDelegate> UseActionHook = null!;
         private readonly UseActionDelegate UseAction = null!;
         private readonly GetActionRowPtrDelegate GetActionRowPtr = null!;
-        private volatile IGameObject? CurrentUIMouseover = null!;
 
         private const byte AbilityActionCategory = 4;
-        private static byte SprintActionCategory = 0;
         private static byte ItemActionCategory = 0;
+        private static byte SprintActionCategory = 0;
 
         public GameHooks(Configuration config, Actions actions) {
             Configuration = config;
             Actions = actions;
 
-            var uimo_ptr = SigScanner.ScanModule(UIMOSig);
             var actionres_ptr = SigScanner.ScanModule(ActionResourceSig);
 
-            if (uimo_ptr == IntPtr.Zero || actionres_ptr == IntPtr.Zero) {
+            if (actionres_ptr == IntPtr.Zero) {
                 Services.PluginLog.Error("Error during game hook initialization, plugin functionality is disabled.");
                 return;
             }
-
-            var uimo_offset = Dalamud.Memory.MemoryHelper.Read<int>(uimo_ptr + 1);
-            var uimo_hook_ptr = uimo_ptr + 5 + uimo_offset;
-            MouseoverHook = Services.InteropProvider.HookFromAddress<MouseoverEntityDelegate>(uimo_hook_ptr, OnMouseoverEntityCallback);
 
             var actionres_offset = Dalamud.Memory.MemoryHelper.Read<int>(actionres_ptr + 1);
             var actionres_fn_ptr = actionres_ptr + 5 + actionres_offset;
             GetActionRowPtr = Marshal.GetDelegateForFunctionPointer<GetActionRowPtrDelegate>(actionres_fn_ptr);
 
             unsafe {
-                TryActionHook = Services.InteropProvider.HookFromAddress<TryActionDelegate>((IntPtr)ActionManager.MemberFunctionPointers.UseAction, TryActionCallback);
+                UseActionHook = Services.InteropProvider.HookFromAddress<TryActionDelegate>((IntPtr)ActionManager.MemberFunctionPointers.UseAction, UseActionCallback);
                 UseAction = Marshal.GetDelegateForFunctionPointer<UseActionDelegate>((IntPtr)ActionManager.MemberFunctionPointers.UseActionLocation);
             }
 
@@ -72,8 +66,7 @@ namespace Redirect {
             UpdateSprintQueueing(Configuration.QueueSprint);
             UpdatePotionQueueing(Configuration.QueuePotions);
 
-            TryActionHook.Enable();
-            MouseoverHook.Enable();
+            UseActionHook.Enable();
         }
 
         // ActionRow:
@@ -116,7 +109,7 @@ namespace Redirect {
                 return false;
             }
 
-            // This is how the game queues actions within the "TryAction" function
+            // This is how the game queues actions within the "UseAction" function
             // There is no separate function for it, it simply updates variables
             // within the ActionManager during the call
 
@@ -142,9 +135,18 @@ namespace Redirect {
             }
         }
 
-        public IGameObject? ResolveTarget(string target) {
+        private unsafe IGameObject? GetCurrentUIMouseover() {
+            var pm = PronounModule.Instance();
+            if (pm is null) {
+                return null;
+            }
+            var obj = (IntPtr)pm->UiMouseOverTarget;
+            return Services.ObjectTable.CreateObjectReference(obj);
+        }
+
+        public unsafe IGameObject? ResolveTarget(string target) {
             return target switch {
-                "UI Mouseover" => CurrentUIMouseover,
+                "UI Mouseover" => GetCurrentUIMouseover(),
                 "Model Mouseover" => TargetManager.MouseOverTarget,
                 "Self" => Services.ClientState.LocalPlayer,
                 "Target" => TargetManager.Target,
@@ -173,7 +175,7 @@ namespace Redirect {
             return Vector3.Distance(player.Position, v);
         }
 
-        private unsafe bool TryActionCallback(IntPtr action_manager, ActionType type, uint id, ulong target, uint param, uint origin, uint unk, Vector3* location) {     
+        private unsafe bool UseActionCallback(IntPtr action_manager, ActionType type, uint id, ulong target, uint param, uint origin, uint unk, Vector3* location) {     
             
             
             // Potion dequeueing
@@ -184,12 +186,12 @@ namespace Redirect {
 
             // Special sprint handling
             if (Configuration.QueueSprint && type == ActionType.GeneralAction && id == 4) {
-                return TryActionHook.Original(action_manager, ActionType.Action, SprintID, target, param, origin, unk, location);
+                return UseActionHook.Original(action_manager, ActionType.Action, SprintID, target, param, origin, unk, location);
             }
 
             // This is NOT the same classification as the action's ActionCategory
             if (type != ActionType.Action) {
-                return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
+                return UseActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
             }
 
             // The action row for the originating ID
@@ -198,7 +200,7 @@ namespace Redirect {
             // The row should never be null here, unless the function somehow gets a bad ID
             // Regardless, this makes the compiler happy and we can avoid PVP handling at the same time
             if (original_row is null || original_row.IsPvP) {
-                return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
+                return UseActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
             }
 
             // Macro queueing
@@ -215,12 +217,12 @@ namespace Redirect {
             var adjusted_row = Actions.GetRow(adjusted_id);
 
             if (adjusted_row is null || !adjusted_row.HasOptionalTargeting()) {
-                return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
+                return UseActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
             }
 
             // Retain queued actions calculated target
             if (origin == 1) {
-                if (adjusted_row.TargetArea && !adjusted_row.IsActionBlocked()) {
+                if (adjusted_row.TargetArea && !adjusted_row.IsGroundActionBlocked()) {
 
                     // Ground targeted actions should not normally reach the queue
                     // Assume cursor placement is intended if no target is specified
@@ -238,7 +240,7 @@ namespace Redirect {
                     }
                 }
 
-                return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
+                return UseActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
             }
 
             // Only actions where "IsPlayerAction" is true are allowed into the config
@@ -269,7 +271,7 @@ namespace Redirect {
                                 if (adjusted_row.TargetArea) {
                                     return GroundActionAtTarget(action_manager, type, id, nt, param, origin, unk, location);
                                 }
-                                return TryActionHook.Original(action_manager, type, id, nt.GameObjectId, param, origin, unk, location);
+                                return UseActionHook.Original(action_manager, type, id, nt.GameObjectId, param, origin, unk, location);
                             }
                             else if (!Configuration.IgnoreErrors) {
                                 switch (err) {
@@ -294,22 +296,22 @@ namespace Redirect {
                     return false;
                 }
 
-                return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
+                return UseActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
 
             }
             else {
                 IGameObject? nt = null;
                 var friendly = adjusted_row.CanTargetFriendly();
                 var hostile = adjusted_row.CanTargetHostile && !friendly;
-                var ground = adjusted_row.TargetArea && !adjusted_row.IsActionBlocked();
+                var ground = adjusted_row.TargetArea && !adjusted_row.IsGroundActionBlocked();
                 var mo = ground ? Configuration.DefaultMouseoverGround : friendly ? Configuration.DefaultMouseoverFriendly : hostile && Configuration.DefaultMouseoverHostile;
                 var model_mo = friendly && mo ? Configuration.DefaultModelMouseoverFriendly : hostile && mo && Configuration.DefaultModelMouseoverHostile;
-
-                if (CurrentUIMouseover is not null && mo) {
-                    bool ok = adjusted_row.TargetInRangeAndLOS(CurrentUIMouseover, out var err);
-                    bool tt_ok = adjusted_row.TargetTypeValid(CurrentUIMouseover);
+                var current_mo = GetCurrentUIMouseover();
+                if (current_mo is not null && mo) {
+                    bool ok = adjusted_row.TargetInRangeAndLOS(current_mo, out var err);
+                    bool tt_ok = adjusted_row.TargetTypeValid(current_mo);
                     if (ok && tt_ok) {
-                        nt = CurrentUIMouseover;
+                        nt = current_mo;
                     }
                     else if (!Configuration.IgnoreErrors) {
                         ToastGui.ShowError(ok ? "Invalid target." : "Target is not in range.");
@@ -333,7 +335,7 @@ namespace Redirect {
                         return GroundActionAtTarget(action_manager, type, id, nt, param, origin, unk, location);
                     }
 
-                    return TryActionHook.Original(action_manager, type, id, nt.GameObjectId, param, origin, unk, location);
+                    return UseActionHook.Original(action_manager, type, id, nt.GameObjectId, param, origin, unk, location);
                 }
 
                 if (Configuration.DefaultCursorMouseover && ground) {
@@ -348,14 +350,14 @@ namespace Redirect {
                 }
             }
 
-            return TryActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
+            return UseActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
         }
 
         private unsafe bool GroundActionAtCursor(IntPtr action_manager, ActionType type, uint action, ulong target, uint param, uint origin, uint unk, Vector3* location) {
             var status = ActionManager.MemberFunctionPointers.GetActionStatus((ActionManager*)action_manager, type, action, (uint)target, true, true, null);
 
             if (status != 0 && status != 0x244) {
-                return TryActionHook.Original(action_manager, type, action, target, param, origin, unk, location);
+                return UseActionHook.Original(action_manager, type, action, target, param, origin, unk, location);
             }
 
             Dalamud.SafeMemory.Read(action_manager + 0x08, out float animation_timer);
@@ -386,7 +388,7 @@ namespace Redirect {
             var status = ActionManager.MemberFunctionPointers.GetActionStatus((ActionManager*)action_manager, type, action, target.GameObjectId, true, true, null);
 
             if (status != 0 && status != 0x244) {
-                return TryActionHook.Original(action_manager, type, action, target.GameObjectId, param, origin, unk, location);
+                return UseActionHook.Original(action_manager, type, action, target.GameObjectId, param, origin, unk, location);
             }
 
             Dalamud.SafeMemory.Read(action_manager + 0x08, out float animation_timer);
@@ -413,14 +415,8 @@ namespace Redirect {
             return UseAction(action_manager, type, action, target.GameObjectId, &new_location);
         }
 
-        private void OnMouseoverEntityCallback(IntPtr this_ptr, IntPtr entity) {
-            MouseoverHook.Original(this_ptr, entity);
-            CurrentUIMouseover = entity == IntPtr.Zero ? null : Services.ObjectTable.CreateObjectReference(entity);
-        }
-
         public void Dispose() {
-            TryActionHook?.Dispose();
-            MouseoverHook?.Dispose();
+            UseActionHook?.Dispose();
             UpdatePotionQueueing(false);
             UpdateSprintQueueing(false);
         }

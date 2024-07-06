@@ -9,11 +9,12 @@ namespace Redirect {
 
     static class ExtensionMethods {
 
-        private static readonly HashSet<uint> ActionBlocklist = new() {
-            // These don't work anyway, but they're technically "ground target" placement so they get thrown in
+        private static readonly HashSet<uint> GroundActionBlocklist = new() {
+            // Actions that are flagged with TargetArea that do not behave like normal ground targeted actions
             3573,   // "Ley Lines",
             7419,   // "Between the Lines",
             24403,  // "Regress",
+            34675,  // "Starry Muse",
         };
 
         private static readonly HashSet<uint> ActionAllowlist = new() {
@@ -37,7 +38,7 @@ namespace Redirect {
         /// </summary>
         /// <param name="a"></param>
         /// <returns></returns>
-        public static bool IsActionBlocked(this Action a) => ActionBlocklist.Contains(a.RowId);
+        public static bool IsGroundActionBlocked(this Action a) => GroundActionBlocklist.Contains(a.RowId);
 
         public static bool HasOptionalTargeting(this Action a) => a.CanTargetFriendly || a.CanTargetHostile || a.CanTargetParty || a.TargetArea;
 

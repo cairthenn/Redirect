@@ -57,7 +57,7 @@ namespace Redirect {
             foreach (var job in JobInfo) {
                 Jobs[job] = Sheet.Where(a => {
 
-                    if (a.IsActionBlocked() || a.ClassJob.Row + 1 == 0 || !a.IsPlayerAction || a.IsRoleAction) {
+                    if (a.IsGroundActionBlocked() || a.ClassJob.Row + 1 == 0 || !a.IsPlayerAction || a.IsRoleAction) {
                         return false;
                     }
 
