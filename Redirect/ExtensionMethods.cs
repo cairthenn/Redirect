@@ -1,9 +1,8 @@
-﻿using Lumina.Excel.GeneratedSheets;
+﻿using Lumina.Excel.Sheets;
 using System.Collections.Generic;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.ClientState.Objects.Enums;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using Dalamud.Logging;
 
 namespace Redirect {
 
@@ -40,9 +39,9 @@ namespace Redirect {
         /// <returns></returns>
         public static bool IsGroundActionBlocked(this Action a) => GroundActionBlocklist.Contains(a.RowId);
 
-        public static bool HasOptionalTargeting(this Action a) => a.CanTargetFriendly || a.CanTargetHostile || a.CanTargetParty || a.TargetArea;
+        public static bool HasOptionalTargeting(this Action a) => a.CanTargetAlly || a.CanTargetHostile || a.CanTargetParty || a.TargetArea;
 
-        public static bool CanTargetFriendly(this Action a) => a.CanTargetFriendly || a.CanTargetParty;
+        public static bool CanTargetFriendly(this Action a) => a.CanTargetAlly || a.CanTargetParty;
 
         public static bool TargetTypeValid(this Action a, IGameObject target) {
 

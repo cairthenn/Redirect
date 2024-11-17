@@ -165,11 +165,11 @@ namespace Redirect {
             };
         }
 
-        public double DistanceFromPlayer(Vector3 v) {
+        public float DistanceFromPlayer(Vector3 v) {
 
             var player = Services.ClientState.LocalPlayer;
             if (player is null) {
-                return double.PositiveInfinity;
+                return float.PositiveInfinity;
             }
 
             return Vector3.Distance(player.Position, v);
@@ -199,7 +199,7 @@ namespace Redirect {
 
             // The row should never be null here, unless the function somehow gets a bad ID
             // Regardless, this makes the compiler happy and we can avoid PVP handling at the same time
-            if (original_row is null || original_row.IsPvP) {
+            if (original_row.IsPvP) {
                 return UseActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
             }
 
@@ -216,7 +216,7 @@ namespace Redirect {
             // The actual action that will be used
             var adjusted_row = Actions.GetRow(adjusted_id);
 
-            if (adjusted_row is null || !adjusted_row.HasOptionalTargeting()) {
+            if (!adjusted_row.HasOptionalTargeting()) {
                 return UseActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
             }
 
@@ -364,7 +364,7 @@ namespace Redirect {
             var action_row = Actions.GetRow(action)!;
 
             if (status == 0x244 || animation_timer > 0) {
-                if (!Configuration.QueueGroundActions || action_row.ActionCategory.Value?.RowId != AbilityActionCategory) {
+                if (!Configuration.QueueGroundActions || action_row.ActionCategory.Value.RowId != AbilityActionCategory) {
                     ToastGui.ShowError("Cannot use while casting.");
                     return false;
                 }
@@ -396,7 +396,7 @@ namespace Redirect {
 
             if (status == 0x244 || animation_timer > 0) {
 
-                if (!Configuration.QueueGroundActions || action_row.ActionCategory.Value?.RowId != AbilityActionCategory) {
+                if (!Configuration.QueueGroundActions || action_row.ActionCategory.Value.RowId != AbilityActionCategory) {
                     ToastGui.ShowError("Cannot use while casting.");
                     return false;
                 }

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Interface;
 using Dalamud.Interface.Textures;
+using Lumina.Excel.Sheets;
 
 namespace Redirect {
     class PluginUI : IDisposable {
@@ -17,11 +18,11 @@ namespace Redirect {
         private GameHooks GameHooks { get; } = null!;
         private Actions Actions { get; } = null!;
 
-        private List<Lumina.Excel.GeneratedSheets.ClassJob> Jobs => Actions.GetJobInfo();
+        private List<uint> Jobs => Actions.GetJobInfo();
 
         internal bool MainWindowVisible = false;
         private bool SelectedRoleActions = false;
-        private Lumina.Excel.GeneratedSheets.ClassJob SelectedJob = null!;
+        private uint SelectedJob;
         private string search = string.Empty;
         private readonly string[] TargetOptions = { "Cursor", "UI Mouseover", "Model Mouseover", "Target", "Focus", "Target of Target", "Self", "Soft Target", "Chocobo", "<2>", "<3>", "<4>", "<5>", "<6>", "<7>", "<8>" };
 
@@ -149,11 +150,14 @@ namespace Redirect {
 
                 if (ImGui.Selectable(" Role Actions", SelectedRoleActions)) {
                     SelectedRoleActions = true;
-                    SelectedJob = null!;
+                    SelectedJob = 0;
                 }
 
+                var cj_sheet = Services.DataManager.GetExcelSheet<ClassJob>()!;
+
                 foreach (var job in Jobs) {
-                    if (ImGui.Selectable($" {job.Abbreviation}", SelectedJob == job)) {
+                    var job_row = cj_sheet.GetRow(job)!;
+                    if (ImGui.Selectable($" {job_row.Abbreviation}", SelectedJob == job)) {
                         SelectedJob = job;
                         SelectedRoleActions = false;
                     }
@@ -187,7 +191,7 @@ namespace Redirect {
 
         private void DrawActions() {
 
-            if (!SelectedRoleActions && SelectedJob is null) {
+            if (!SelectedRoleActions && SelectedJob <= 0) {
                 var region = ImGui.GetContentRegionAvail();
                 ImGui.Dummy(new Vector2(1, region.Y * .45f));
                 ImGui.Dummy(new Vector2(region.X * .30f, -1));
@@ -237,7 +241,7 @@ namespace Redirect {
 
                     ImGui.TableNextColumn();
                     ImGui.AlignTextToFramePadding();
-                    ImGui.TextUnformatted(action.Name);
+                    ImGui.TextUnformatted(action.Name.ToString());
 
                     // ADD REDIRECTION
 
