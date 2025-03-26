@@ -122,22 +122,6 @@ namespace Redirect {
                         Configuration.EnableMacroQueueing = macro_queue;
                     }
 
-                    bool sprint_queue = Configuration.QueueSprint;
-                    if (ImGui.Checkbox("Sprint", ref sprint_queue)) {
-                        if (sprint_queue != Configuration.QueueSprint) {
-                            GameHooks.UpdateSprintQueueing(sprint_queue);
-                            Configuration.QueueSprint = sprint_queue;
-                        }
-                    }
-
-                    bool item_queue = Configuration.QueuePotions;
-                    if (ImGui.Checkbox("Potions", ref item_queue)) {
-                        if (item_queue != Configuration.QueuePotions) {
-                            GameHooks.UpdatePotionQueueing(item_queue);
-                            Configuration.QueuePotions = item_queue;
-                        }
-                    }
-
                     ImGui.EndMenu();
                 }
 

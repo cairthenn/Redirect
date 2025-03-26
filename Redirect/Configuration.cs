@@ -14,8 +14,6 @@ namespace Redirect {
         public bool DefaultMouseoverGround { get; set; } = false;
         public bool DefaultCursorMouseover { get; set; } = false;
         public bool EnableMacroQueueing { get; set; } = false;
-        public bool QueuePotions { get; set; } = false;
-        public bool QueueSprint { get; set; } = false;
         public bool QueueGroundActions { get; set; } = false;
         public bool IgnoreErrors { get; set; } = true;
         public string DefaultRedirection { get; set; } = "UI Mouseover";

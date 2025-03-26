@@ -5,9 +5,9 @@
     "jobs",
     "utility"
   ],
-  "Description": "Easily change the targeting priority for spells and abilities. Queue macros, sprint, and potions! Type /redirect to configure.",
+  "Description": "Easily change the targeting priority for spells and abilities. Queue macros and ground-targeted actions! Type /redirect to configure.",
   "InternalName": "Redirect",
   "Name": "Redirect",
-  "Punchline": "Change where your actions are going, queue macros, queue sprint, and queue potions!",
+  "Punchline": "Simple mouseover and ground-targeting action integration",
   "RepoUrl": "https://github.com/cairthenn/Redirect"
 }

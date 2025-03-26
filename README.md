@@ -4,8 +4,6 @@ Redirect is a [Dalamud](https://github.com/goatcorp/Dalamud) plugin for Final Fa
 
 The plugin enables seamless use of mouseover and focus target functionality by allowing you to change the base targeting priority of each action on your bars.
 
-Additionally, it enables action queueing for things that the game normally won't cover, including macros, Sprint, and combat potions.
-
 ![Redirect preview](https://github.com/cairthenn/Redirect/blob/main/preview.png?raw=true)
 
 ### How do I install it?
@@ -29,8 +27,6 @@ These options allow additional things to enter the combat queue, avoiding "clipp
 
 * `Ground targeted actions` : Lets you queue ground actions while casting. This must be used in conjunction with a target changing option -- the orange ground targeting circle will *not* appear
 * `Actions from macros` : Prevents GCD clipping from macro actions
-* `Sprint` : Zoom even easier
-* `Potions` : Includes various stat potions and elixirs. Does **not** include food
 
 ## FAQ
 

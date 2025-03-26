@@ -14,9 +14,7 @@ namespace Redirect {
 
         private const int SprintID = 3;
         private const int PotionID = 846;
-        private const int StarryMuseID = 34675;
         private const uint DefaultTarget = 0xE0000000;
-        private const string ActionResourceSig = "E8 ?? ?? ?? ?? 80 FB 12";
 
         private Configuration Configuration { get; } = null!;
         private Actions Actions { get; } = null!;
@@ -26,81 +24,24 @@ namespace Redirect {
 
         private unsafe delegate bool TryActionDelegate(IntPtr tp, ActionType t, uint id, ulong target, uint param, uint origin, uint unk, Vector3* l);
         private unsafe delegate bool UseActionDelegate(IntPtr tp, ActionType t, uint id, ulong target, Vector3* l, uint param = 0);
-        private delegate IntPtr GetActionRowPtrDelegate(int id);
         private delegate void MouseoverEntityDelegate(IntPtr t, IntPtr entity);
         private readonly Hook<TryActionDelegate> UseActionHook = null!;
         private readonly UseActionDelegate UseAction = null!;
-        private readonly GetActionRowPtrDelegate GetActionRowPtr = null!;
 
         private const byte AbilityActionCategory = 4;
-        private static byte ItemActionCategory = 0;
-        private static byte SprintActionCategory = 0;
 
         public GameHooks(Configuration config, Actions actions) {
             Configuration = config;
             Actions = actions;
-
-            var actionres_ptr = SigScanner.ScanModule(ActionResourceSig);
-
-            if (actionres_ptr == IntPtr.Zero) {
-                Services.PluginLog.Error("Error during game hook initialization, plugin functionality is disabled.");
-                return;
-            }
-
-            var actionres_offset = Dalamud.Memory.MemoryHelper.Read<int>(actionres_ptr + 1);
-            var actionres_fn_ptr = actionres_ptr + 5 + actionres_offset;
-            GetActionRowPtr = Marshal.GetDelegateForFunctionPointer<GetActionRowPtrDelegate>(actionres_fn_ptr);
 
             unsafe {
                 UseActionHook = Services.InteropProvider.HookFromAddress<TryActionDelegate>((IntPtr)ActionManager.MemberFunctionPointers.UseAction, UseActionCallback);
                 UseAction = Marshal.GetDelegateForFunctionPointer<UseActionDelegate>((IntPtr)ActionManager.MemberFunctionPointers.UseActionLocation);
             }
 
-            // Get Sprint's default ActionCategory
-            var srow = GetActionRowPtr(SprintID);
-            Dalamud.SafeMemory.Read(srow + 0x20, out SprintActionCategory);
-            // Get Potion's default ActionCategory
-            var irow = GetActionRowPtr(PotionID);
-            Dalamud.SafeMemory.Read(irow + 0x20, out ItemActionCategory);
-
-            UpdateSprintQueueing(Configuration.QueueSprint);
-            UpdatePotionQueueing(Configuration.QueuePotions);
-
             UseActionHook.Enable();
         }
 
-        // ActionRow:
-
-        // 0x08:    IconID
-        // 0x0A:    Cast VFX
-        // 0x0C:    ActionTimeline
-        // 0x0E:    Cost
-        // 0x14:    Cast
-        // 0x16:    Recast
-        // 0x1E:    ActionTimeline
-        // 0x20:    ActionCategory
-        // 0x40:    Name
-
-        public void UpdateSprintQueueing(bool enable) {
-            if (SprintActionCategory == 0) {
-                return;
-            }
-
-            var row = GetActionRowPtr(SprintID);
-            var type = enable ? AbilityActionCategory : SprintActionCategory;
-            Dalamud.SafeMemory.Write(row + 0x20, type);
-        }
-
-        public void UpdatePotionQueueing(bool enable) {
-            if (ItemActionCategory == 0) {
-                return;
-            }
-
-            var row = GetActionRowPtr(PotionID);
-            var type = enable ? AbilityActionCategory : ItemActionCategory;
-
-            Dalamud.SafeMemory.Write(row + 0x20, type);
-        }
 
         private static bool TryQueueAction(IntPtr action_manager, uint id, uint param, ActionType action_type, ulong target_id) {
             Dalamud.SafeMemory.Read(action_manager + 0x68, out int queue_full);
@@ -176,18 +117,6 @@ namespace Redirect {
         }
 
         private unsafe bool UseActionCallback(IntPtr action_manager, ActionType type, uint id, ulong target, uint param, uint origin, uint unk, Vector3* location) {     
-            
-            
-            // Potion dequeueing
-            // This param (-1) picks the item from any available slot, which is the default hotbar method
-            if (Configuration.QueuePotions && type == ActionType.Item && origin == 1) {
-                param = 65535;
-            }
-
-            // Special sprint handling
-            if (Configuration.QueueSprint && type == ActionType.GeneralAction && id == 4) {
-                return UseActionHook.Original(action_manager, ActionType.Action, SprintID, target, param, origin, unk, location);
-            }
 
             // This is NOT the same classification as the action's ActionCategory
             if (type != ActionType.Action) {
@@ -197,8 +126,6 @@ namespace Redirect {
             // The action row for the originating ID
             var original_row = Actions.GetRow(id);
 
-            // The row should never be null here, unless the function somehow gets a bad ID
-            // Regardless, this makes the compiler happy and we can avoid PVP handling at the same time
             if (original_row.IsPvP) {
                 return UseActionHook.Original(action_manager, type, id, target, param, origin, unk, location);
             }
@@ -211,7 +138,7 @@ namespace Redirect {
             var adjusted_id = ActionManager.MemberFunctionPointers.GetAdjustedActionId((ActionManager*)action_manager, id);
 
             // The action id to match against what's stored in the user config
-            var conf_id = original_row!.RowId;
+            var conf_id = original_row.RowId;
 
             // The actual action that will be used
             var adjusted_row = Actions.GetRow(adjusted_id);
@@ -417,8 +344,6 @@ namespace Redirect {
 
         public void Dispose() {
             UseActionHook?.Dispose();
-            UpdatePotionQueueing(false);
-            UpdateSprintQueueing(false);
         }
     }
 }
