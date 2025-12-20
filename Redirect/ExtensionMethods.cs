@@ -64,7 +64,7 @@ namespace Redirect {
         }
 
         public static bool TargetInRangeAndLOS(this Action a, IGameObject target, out uint err) {
-            if (Services.ClientState.LocalPlayer is not { } player) {
+            if (Services.ObjectTable.LocalPlayer is not { } player) {
                 err = 0;
                 return false;
             }
