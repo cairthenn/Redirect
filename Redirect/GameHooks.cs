@@ -85,7 +85,7 @@ namespace Redirect {
             return target switch {
                 "UI Mouseover" => GetCurrentUIMouseover(),
                 "Model Mouseover" => TargetManager.MouseOverTarget,
-                "Self" => Services.ClientState.LocalPlayer,
+                "Self" => Services.ObjectTable.LocalPlayer,
                 "Target" => TargetManager.Target,
                 "Focus" => TargetManager.FocusTarget,
                 "Target of Target" => TargetManager.Target is { } ? TargetManager.Target.TargetObject : null,
@@ -104,7 +104,7 @@ namespace Redirect {
 
         public float DistanceFromPlayer(Vector3 v) {
 
-            var player = Services.ClientState.LocalPlayer;
+            var player = Services.ObjectTable.LocalPlayer;
             if (player is null) {
                 return float.PositiveInfinity;
             }
