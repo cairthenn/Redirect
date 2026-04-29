@@ -52,9 +52,9 @@ namespace Redirect {
             switch (target.ObjectKind) {
                 case ObjectKind.BattleNpc:
                     IBattleNpc npc = (IBattleNpc)target;
-                    return npc.BattleNpcKind == BattleNpcSubKind.Enemy ? a.CanTargetHostile : a.CanTargetFriendly();
+                    return npc.BattleNpcKind == BattleNpcSubKind.Combatant ? a.CanTargetHostile : a.CanTargetFriendly();
                 case ObjectKind.EventNpc:
-                case ObjectKind.Player:
+                case ObjectKind.Pc:
                 case ObjectKind.Companion:
                     return a.CanTargetFriendly();
                 default:
