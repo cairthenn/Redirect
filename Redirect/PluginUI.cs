@@ -23,7 +23,7 @@ namespace Redirect {
         private bool SelectedRoleActions = false;
         private uint SelectedJob;
         private string search = string.Empty;
-        private readonly string[] TargetOptions = { "Cursor", "UI Mouseover", "Model Mouseover", "Target", "Focus", "Target of Target", "Self", "Soft Target", "Chocobo", "<2>", "<3>", "<4>", "<5>", "<6>", "<7>", "<8>" };
+        private readonly string[] TargetOptions = ["Cursor", "UI Mouseover", "Model Mouseover", "Target", "Focus", "Target of Target", "Self", "Soft Target", "Chocobo", "<2>", "<3>", "<4>", "<5>", "<6>", "<7>", "<8>"];
 
         public PluginUI(Plugin plugin, Configuration config, Actions actions) {
             Plugin = plugin;
@@ -158,7 +158,7 @@ namespace Redirect {
             ImGui.End();
         }
 
-        private void DrawIcon(ushort id, Vector2 size = default) {
+        private static void DrawIcon(ushort id, Vector2 size = default) {
             var icon = new GameIconLookup(id);
             var texture = Services.TextureProvider.GetFromGameIcon(icon);
             var wrap = texture.GetWrapOrDefault();
@@ -198,7 +198,7 @@ namespace Redirect {
 
                 var filtered = actions.Where(x => {
 
-                    if (search.Length > 0 && !x.Name.ToString().ToLower().Contains(search.ToLower())) {
+                    if (search.Length > 0 && !x.Name.ToString().Contains(search, StringComparison.CurrentCultureIgnoreCase)) {
                         return false;
                     }
 

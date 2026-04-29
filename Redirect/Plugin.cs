@@ -6,7 +6,7 @@ using Dalamud.Plugin.Services;
 namespace Redirect {
     public class Plugin : IDalamudPlugin, IDisposable {
 
-        public string Name => "Redirect";
+        public static string Name => "Redirect";
         private const string CommandName = "/redirect";
         private Configuration Configuration { get; set; }
         private PluginUI PluginUi { get; } = null!;

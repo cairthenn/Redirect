@@ -17,7 +17,7 @@ namespace Redirect {
         public bool QueueGroundActions { get; set; } = false;
         public bool IgnoreErrors { get; set; } = true;
         public string DefaultRedirection { get; set; } = "UI Mouseover";
-        public Dictionary<uint, Redirection> Redirections { get; set; } = new();
+        public Dictionary<uint, Redirection> Redirections { get; set; } = [];
 
         public void Save() {
             Services.Interface.SavePluginConfig(this);

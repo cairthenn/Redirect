@@ -8,20 +8,20 @@ namespace Redirect {
 
     static class ExtensionMethods {
 
-        private static readonly HashSet<uint> GroundActionBlocklist = new() {
+        private static readonly HashSet<uint> GroundActionBlocklist = [
             // Actions that are flagged with TargetArea that do not behave like normal ground targeted actions
             3573,   // "Ley Lines",
             7419,   // "Between the Lines",
             24403,  // "Regress",
             34675,  // "Starry Muse",
-        };
+        ];
 
-        private static readonly HashSet<uint> ActionAllowlist = new() {
+        private static readonly HashSet<uint> ActionAllowlist = [
             25822, // "Astral Flow",
             37019, // "Play I",
             37020, // "Play II",
             37021, // "Play III",
-        };
+        ];
 
         /// <summary>
         /// For certain actions, only the upgraded version has optional targeting. This returns true for such actions.

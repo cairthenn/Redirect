@@ -6,7 +6,7 @@ namespace Redirect {
     [Serializable]
     public class Redirection {
         public uint ID { get; init; }
-        public List<string> Priority { get; set; } = new();
+        public List<string> Priority { get; set; } = [];
 
         [JsonIgnore]
         public int Count => Priority!.Count;

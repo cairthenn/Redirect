@@ -102,7 +102,7 @@ namespace Redirect {
             };
         }
 
-        public float DistanceFromPlayer(Vector3 v) {
+        public static float DistanceFromPlayer(Vector3 v) {
 
             var player = Services.ObjectTable.LocalPlayer;
             if (player is null) {
@@ -171,11 +171,11 @@ namespace Redirect {
                 configurationId = adjustedRow!.RowId;
             }
 
-            if (Configuration.Redirections.ContainsKey(configurationId)) {
+            if (Configuration.Redirections.TryGetValue(configurationId, out Redirection? value)) {
 
                 bool suppressRing = false;
 
-                foreach (var t in Configuration.Redirections[configurationId].Priority) {
+                foreach (var t in value.Priority) {
 
                     if (t == "Cursor" && adjustedRow.TargetArea) {
                         suppressRing = true;
@@ -231,7 +231,7 @@ namespace Redirect {
                 var modelMO = friendly && mo ? Configuration.DefaultModelMouseoverFriendly : hostile && mo && Configuration.DefaultModelMouseoverHostile;
                 var currentMO = GetCurrentUIMouseover();
                 if (currentMO is not null && mo) {
-                    bool rangeOk = adjustedRow.TargetInRangeAndLOS(currentMO, out var err);
+                    bool rangeOk = adjustedRow.TargetInRangeAndLOS(currentMO, out _);
                     bool typeOk = adjustedRow.TargetTypeValid(currentMO);
                     if (rangeOk && typeOk) {
                         nt = currentMO;
@@ -242,7 +242,7 @@ namespace Redirect {
                     }
                 }
                 else if (TargetManager.MouseOverTarget is not null && modelMO) {
-                    bool rangeOk = adjustedRow.TargetInRangeAndLOS(TargetManager.MouseOverTarget, out var err);
+                    bool rangeOk = adjustedRow.TargetInRangeAndLOS(TargetManager.MouseOverTarget, out _);
                     bool typeOk = adjustedRow.TargetTypeValid(TargetManager.MouseOverTarget);
                     if (rangeOk && typeOk) {
                         nt = TargetManager.MouseOverTarget;
