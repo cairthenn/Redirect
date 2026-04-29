@@ -61,47 +61,47 @@ namespace Redirect {
 
                     ImGui.Dummy(new Vector2(-1, 1));
 
-                    bool ignore_errors = Configuration.IgnoreErrors;
-                    if (ImGui.Checkbox("Ignore range and target type errors", ref ignore_errors)) {
-                        Configuration.IgnoreErrors = ignore_errors;
+                    bool ignoreErrors = Configuration.IgnoreErrors;
+                    if (ImGui.Checkbox("Ignore range and target type errors", ref ignoreErrors)) {
+                        Configuration.IgnoreErrors = ignoreErrors;
                     }
 
-                    bool friendly_mo = Configuration.DefaultMouseoverFriendly;
-                    if (ImGui.Checkbox("Treat all friendly actions as mouseovers", ref friendly_mo)) {
-                        Configuration.DefaultMouseoverFriendly = friendly_mo;
+                    bool friendlyMO = Configuration.DefaultMouseoverFriendly;
+                    if (ImGui.Checkbox("Treat all friendly actions as mouseovers", ref friendlyMO)) {
+                        Configuration.DefaultMouseoverFriendly = friendlyMO;
                     }
 
-                    if (friendly_mo) {
+                    if (friendlyMO) {
                         ImGui.Dummy(new Vector2(1, -1));
                         ImGui.SameLine();
-                        bool friendly_mo_model = Configuration.DefaultModelMouseoverFriendly;
-                        if (ImGui.Checkbox("Include friendly target models", ref friendly_mo_model)) {
-                            Configuration.DefaultModelMouseoverFriendly = friendly_mo_model;
+                        bool friendlyModelMO = Configuration.DefaultModelMouseoverFriendly;
+                        if (ImGui.Checkbox("Include friendly target models", ref friendlyModelMO)) {
+                            Configuration.DefaultModelMouseoverFriendly = friendlyModelMO;
                         }
                     }
 
-                    bool hostile_mo = Configuration.DefaultMouseoverHostile;
-                    if (ImGui.Checkbox("Treat all hostile actions as mouseovers", ref hostile_mo)) {
-                        Configuration.DefaultMouseoverHostile = hostile_mo;
+                    bool hostileMO = Configuration.DefaultMouseoverHostile;
+                    if (ImGui.Checkbox("Treat all hostile actions as mouseovers", ref hostileMO)) {
+                        Configuration.DefaultMouseoverHostile = hostileMO;
                     }
 
-                    if (hostile_mo) {
+                    if (hostileMO) {
                         ImGui.Dummy(new Vector2(1, -1));
                         ImGui.SameLine();
-                        bool hostile_mo_model = Configuration.DefaultModelMouseoverHostile;
-                        if (ImGui.Checkbox("Include hostile target models", ref hostile_mo_model)) {
-                            Configuration.DefaultModelMouseoverHostile = hostile_mo_model;
+                        bool hostileModelMO = Configuration.DefaultModelMouseoverHostile;
+                        if (ImGui.Checkbox("Include hostile target models", ref hostileModelMO)) {
+                            Configuration.DefaultModelMouseoverHostile = hostileModelMO;
                         }
                     }
 
-                    bool ground_mo = Configuration.DefaultMouseoverGround;
-                    if (ImGui.Checkbox("Treat all ground-targeted actions as mouseovers", ref ground_mo)) {
-                        Configuration.DefaultMouseoverGround = ground_mo;
+                    bool groundMO = Configuration.DefaultMouseoverGround;
+                    if (ImGui.Checkbox("Treat all ground-targeted actions as mouseovers", ref groundMO)) {
+                        Configuration.DefaultMouseoverGround = groundMO;
                     }
 
-                    bool cursor_mo = Configuration.DefaultCursorMouseover;
-                    if (ImGui.Checkbox("Place all ground targets at the cursor", ref cursor_mo)) {
-                        Configuration.DefaultCursorMouseover = cursor_mo;
+                    bool cursorMo = Configuration.DefaultCursorMouseover;
+                    if (ImGui.Checkbox("Place all ground targets at the cursor", ref cursorMo)) {
+                        Configuration.DefaultCursorMouseover = cursorMo;
                     }
 
                     ImGui.Dummy(new Vector2(-1, 1));
@@ -110,14 +110,14 @@ namespace Redirect {
 
                     ImGui.Dummy(new Vector2(-1, 1));
 
-                    bool queue_ground = Configuration.QueueGroundActions;
-                    if (ImGui.Checkbox("Ground targeted actions", ref queue_ground)) {
-                        Configuration.QueueGroundActions = queue_ground;
+                    bool queueGround = Configuration.QueueGroundActions;
+                    if (ImGui.Checkbox("Ground targeted actions", ref queueGround)) {
+                        Configuration.QueueGroundActions = queueGround;
                     }
 
-                    bool macro_queue = Configuration.EnableMacroQueueing;
-                    if (ImGui.Checkbox("Actions from macros", ref macro_queue)) {
-                        Configuration.EnableMacroQueueing = macro_queue;
+                    bool queueMacros = Configuration.EnableMacroQueueing;
+                    if (ImGui.Checkbox("Actions from macros", ref queueMacros)) {
+                        Configuration.EnableMacroQueueing = queueMacros;
                     }
 
                     ImGui.EndMenu();
@@ -135,11 +135,11 @@ namespace Redirect {
                     SelectedJob = 0;
                 }
 
-                var cj_sheet = Services.DataManager.GetExcelSheet<ClassJob>()!;
+                var cjSheet = Services.DataManager.GetExcelSheet<ClassJob>()!;
 
                 foreach (var job in Jobs) {
-                    var job_row = cj_sheet.GetRow(job)!;
-                    if (ImGui.Selectable($" {job_row.Abbreviation}", SelectedJob == job)) {
+                    var jobRow = cjSheet.GetRow(job)!;
+                    if (ImGui.Selectable($" {jobRow.Abbreviation}", SelectedJob == job)) {
                         SelectedJob = job;
                         SelectedRoleActions = false;
                     }
@@ -261,14 +261,14 @@ namespace Redirect {
                                     continue;
                                 }
 
-                                bool is_selected = (TargetOptions[j] == redirection[i]);
+                                bool selected = (TargetOptions[j] == redirection[i]);
 
-                                if (ImGui.Selectable(TargetOptions[j], is_selected)) {
+                                if (ImGui.Selectable(TargetOptions[j], selected)) {
                                     redirection[i] = TargetOptions[j];
                                     save = true;
                                 }
 
-                                if (is_selected) {
+                                if (selected) {
                                     ImGui.SetItemDefaultFocus();
                                 }
                             }
