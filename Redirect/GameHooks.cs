@@ -110,165 +110,203 @@ namespace Redirect {
             return Vector3.Distance(player.Position, v);
         }
 
-        private unsafe bool UseActionCallback(IntPtr actManager, ActionType type, uint id, ulong target, uint param, uint origin, uint unk, Vector3* location) {     
-
-            // This is NOT the same classification as the action's ActionCategory
-            if (type != ActionType.Action) {
-                return UseActionHook.Original(actManager, type, id, target, param, origin, unk, location);
-            }
-
-            // The action row for the originating ID
-            var ogRow = Actions.GetRow(id);
-
-            if (ogRow.IsPvP) {
-                return UseActionHook.Original(actManager, type, id, target, param, origin, unk, location);
-            }
-
-            // Macro queueing
-            // Known origins : 0 - bar, 1 - queue, 2 - macro
-            origin = origin == 2 && Configuration.EnableMacroQueueing ? 0 : origin;
-
-            // Actions placed on bars try to use their base action, so we need to get the upgraded version
-            var adjustedId = ActionManager.MemberFunctionPointers.GetAdjustedActionId((ActionManager*)actManager, id);
-
-            // The action id to match against what's stored in the user config
-            var configurationId = ogRow.RowId;
-
-            // The actual action that will be used
-            var adjustedRow = Actions.GetRow(adjustedId);
-
-            if (!adjustedRow.HasOptionalTargeting()) {
-                return UseActionHook.Original(actManager, type, id, target, param, origin, unk, location);
-            }
-
-            // Retain queued actions calculated target
-            if (origin == 1) {
-                if (adjustedRow.TargetArea && !adjustedRow.IsGroundActionBlocked()) {
-
-                    // Ground targeted actions should not normally reach the queue
-                    // Assume cursor placement is intended if no target is specified
-
-                    if(target == DefaultTarget) {
-                        Vector3 loc;
-                        var success = ActionManager.MemberFunctionPointers.GetGroundPositionForCursor((ActionManager*)actManager, &loc);
-                        if(success) {
-                            return GroundActionAtCursor(actManager, type, id, target, param, origin, unk, &loc);
-                        }
-                    }
-                    else {
-                        IGameObject targetObj = Services.ObjectTable.SearchById(target)!;
-                        return GroundActionAtTarget(actManager, type, id, targetObj, param, origin, unk, location);
-                    }
+        private unsafe bool UseActionCallback(IntPtr actManager, ActionType type, uint id, ulong target, uint param, uint origin, uint unk, Vector3* location)
+        {
+            try
+            {
+                // This is NOT the same classification as the action's ActionCategory
+                if (type != ActionType.Action)
+                {
+                    return UseActionHook.Original(actManager, type, id, target, param, origin, unk, location);
                 }
 
-                return UseActionHook.Original(actManager, type, id, target, param, origin, unk, location);
-            }
+                // The action row for the originating ID
+                var ogRow = Actions.GetRow(id);
 
-            // Only actions where "IsPlayerAction" is true are allowed into the config
-            if (adjustedRow.IsPlayerAction) {
-                configurationId = adjustedRow!.RowId;
-            }
+                if (ogRow.IsPvP)
+                {
+                    return UseActionHook.Original(actManager, type, id, target, param, origin, unk, location);
+                }
 
-            if (Configuration.Redirections.TryGetValue(configurationId, out Redirection? value)) {
+                // Macro queueing
+                // Known origins : 0 - bar, 1 - queue, 2 - macro
+                origin = origin == 2 && Configuration.EnableMacroQueueing ? 0 : origin;
 
-                bool suppressRing = false;
+                // Actions placed on bars try to use their base action, so we need to get the upgraded version
+                var adjustedId = ActionManager.MemberFunctionPointers.GetAdjustedActionId((ActionManager*)actManager, id);
 
-                foreach (var t in value.Priority) {
+                // The action id to match against what's stored in the user config
+                var configurationId = ogRow.RowId;
 
-                    if (t == "Cursor" && adjustedRow.TargetArea) {
-                        suppressRing = true;
-                        Vector3 loc;
-                        var success = ActionManager.MemberFunctionPointers.GetGroundPositionForCursor((ActionManager*)actManager, &loc);
-                        if (success) {
-                            return GroundActionAtCursor(actManager, type, id, target, param, origin, unk, &loc);
-                        }
-                    }
-                    else {
-                        IGameObject? nt = ResolveTarget(t);
-                        if (nt is not null) {
-                            bool rangeOk = adjustedRow.TargetInRangeAndLOS(nt, out var err);
-                            bool typeOk = adjustedRow.TargetTypeValid(nt);
-                            if (rangeOk && typeOk) {
-                                if (adjustedRow.TargetArea) {
-                                    return GroundActionAtTarget(actManager, type, id, nt, param, origin, unk, location);
-                                }
-                                return UseActionHook.Original(actManager, type, id, nt.GameObjectId, param, origin, unk, location);
-                            }
-                            else if (!Configuration.IgnoreErrors) {
-                                switch (err) {
-                                    case 566:
-                                        ToastGui.ShowError("Target not in line of sight.");
-                                        break;
-                                    case 562:
-                                        ToastGui.ShowError("Target is not in range.");
-                                        break;
-                                    default:
-                                        ToastGui.ShowError("Invalid target.");
-                                        break;
-                                }
-                                return false;
+                // The actual action that will be used
+                var adjustedRow = Actions.GetRow(adjustedId);
+
+                if (!adjustedRow.HasOptionalTargeting())
+                {
+                    return UseActionHook.Original(actManager, type, id, target, param, origin, unk, location);
+                }
+
+                // Retain queued actions calculated target
+                if (origin == 1)
+                {
+                    if (adjustedRow.TargetArea && !adjustedRow.IsGroundActionBlocked())
+                    {
+
+                        // Ground targeted actions should not normally reach the queue
+                        // Assume cursor placement is intended if no target is specified
+
+                        if (target == DefaultTarget)
+                        {
+                            Vector3 loc;
+                            var success = ActionManager.MemberFunctionPointers.GetGroundPositionForCursor((ActionManager*)actManager, &loc);
+                            if (success)
+                            {
+                                return GroundActionAtCursor(actManager, type, id, target, param, origin, unk, &loc);
                             }
                         }
+                        else
+                        {
+                            IGameObject targetObj = Services.ObjectTable.SearchById(target)!;
+                            return GroundActionAtTarget(actManager, type, id, targetObj, param, origin, unk, location);
+                        }
                     }
+
+                    return UseActionHook.Original(actManager, type, id, target, param, origin, unk, location);
                 }
 
-                if (adjustedRow.TargetArea && suppressRing) {
-                    ToastGui.ShowError("Invalid target.");
-                    return false;
+                // Only actions where "IsPlayerAction" is true are allowed into the config
+                if (adjustedRow.IsPlayerAction)
+                {
+                    configurationId = adjustedRow!.RowId;
                 }
 
-                return UseActionHook.Original(actManager, type, id, target, param, origin, unk, location);
+                if (Configuration.Redirections.TryGetValue(configurationId, out Redirection? value))
+                {
 
-            }
-            else {
-                IGameObject? nt = null;
-                var friendly = adjustedRow.CanTargetFriendly();
-                var hostile = adjustedRow.CanTargetHostile && !friendly;
-                var ground = adjustedRow.TargetArea && !adjustedRow.IsGroundActionBlocked();
-                var mo = ground ? Configuration.DefaultMouseoverGround : friendly ? Configuration.DefaultMouseoverFriendly : hostile && Configuration.DefaultMouseoverHostile;
-                var modelMO = friendly && mo ? Configuration.DefaultModelMouseoverFriendly : hostile && mo && Configuration.DefaultModelMouseoverHostile;
-                var currentMO = GetCurrentUIMouseover();
-                if (currentMO is not null && mo) {
-                    bool rangeOk = adjustedRow.TargetInRangeAndLOS(currentMO, out _);
-                    bool typeOk = adjustedRow.TargetTypeValid(currentMO);
-                    if (rangeOk && typeOk) {
-                        nt = currentMO;
+                    bool suppressRing = false;
+
+                    foreach (var t in value.Priority)
+                    {
+
+                        if (t == "Cursor" && adjustedRow.TargetArea)
+                        {
+                            suppressRing = true;
+                            Vector3 loc;
+                            var success = ActionManager.MemberFunctionPointers.GetGroundPositionForCursor((ActionManager*)actManager, &loc);
+                            if (success)
+                            {
+                                return GroundActionAtCursor(actManager, type, id, target, param, origin, unk, &loc);
+                            }
+                        }
+                        else
+                        {
+                            IGameObject? nt = ResolveTarget(t);
+                            if (nt is not null)
+                            {
+                                bool rangeOk = adjustedRow.TargetInRangeAndLOS(nt, out var err);
+                                bool typeOk = adjustedRow.TargetTypeValid(nt);
+                                if (rangeOk && typeOk)
+                                {
+                                    if (adjustedRow.TargetArea)
+                                    {
+                                        return GroundActionAtTarget(actManager, type, id, nt, param, origin, unk, location);
+                                    }
+                                    return UseActionHook.Original(actManager, type, id, nt.GameObjectId, param, origin, unk, location);
+                                }
+                                else if (!Configuration.IgnoreErrors)
+                                {
+                                    switch (err)
+                                    {
+                                        case 566:
+                                            ToastGui.ShowError("Target not in line of sight.");
+                                            break;
+                                        case 562:
+                                            ToastGui.ShowError("Target is not in range.");
+                                            break;
+                                        default:
+                                            ToastGui.ShowError("Invalid target.");
+                                            break;
+                                    }
+                                    return false;
+                                }
+                            }
+                        }
                     }
-                    else if (!Configuration.IgnoreErrors) {
-                        ToastGui.ShowError(rangeOk ? "Invalid target." : "Target is not in range.");
+
+                    if (adjustedRow.TargetArea && suppressRing)
+                    {
+                        ToastGui.ShowError("Invalid target.");
+                        return false;
+                    }
+
+                    return UseActionHook.Original(actManager, type, id, target, param, origin, unk, location);
+
+                }
+                else
+                {
+                    IGameObject? nt = null;
+                    var friendly = adjustedRow.CanTargetFriendly();
+                    var hostile = adjustedRow.CanTargetHostile && !friendly;
+                    var ground = adjustedRow.TargetArea && !adjustedRow.IsGroundActionBlocked();
+                    var mo = ground ? Configuration.DefaultMouseoverGround : friendly ? Configuration.DefaultMouseoverFriendly : hostile && Configuration.DefaultMouseoverHostile;
+                    var modelMO = friendly && mo ? Configuration.DefaultModelMouseoverFriendly : hostile && mo && Configuration.DefaultModelMouseoverHostile;
+                    var currentMO = GetCurrentUIMouseover();
+                    if (currentMO is not null && mo)
+                    {
+                        bool rangeOk = adjustedRow.TargetInRangeAndLOS(currentMO, out _);
+                        bool typeOk = adjustedRow.TargetTypeValid(currentMO);
+                        if (rangeOk && typeOk)
+                        {
+                            nt = currentMO;
+                        }
+                        else if (!Configuration.IgnoreErrors)
+                        {
+                            ToastGui.ShowError(rangeOk ? "Invalid target." : "Target is not in range.");
+                            return false;
+                        }
+                    }
+                    else if (TargetManager.MouseOverTarget is not null && modelMO)
+                    {
+                        bool rangeOk = adjustedRow.TargetInRangeAndLOS(TargetManager.MouseOverTarget, out _);
+                        bool typeOk = adjustedRow.TargetTypeValid(TargetManager.MouseOverTarget);
+                        if (rangeOk && typeOk)
+                        {
+                            nt = TargetManager.MouseOverTarget;
+                        }
+                        else if (!Configuration.IgnoreErrors)
+                        {
+                            ToastGui.ShowError(rangeOk ? "Invalid target." : "Target is not in range.");
+                            return false;
+                        }
+                    }
+
+                    if (nt is not null)
+                    {
+                        if (adjustedRow.TargetArea)
+                        {
+                            return GroundActionAtTarget(actManager, type, id, nt, param, origin, unk, location);
+                        }
+
+                        return UseActionHook.Original(actManager, type, id, nt.GameObjectId, param, origin, unk, location);
+                    }
+
+                    if (Configuration.DefaultCursorMouseover && ground)
+                    {
+                        Vector3 loc;
+                        var success = ActionManager.MemberFunctionPointers.GetGroundPositionForCursor((ActionManager*)actManager, &loc);
+                        if (success)
+                        {
+                            return GroundActionAtCursor(actManager, type, id, target, param, origin, unk, &loc);
+                        }
+
+                        ToastGui.ShowError("Invalid target.");
                         return false;
                     }
                 }
-                else if (TargetManager.MouseOverTarget is not null && modelMO) {
-                    bool rangeOk = adjustedRow.TargetInRangeAndLOS(TargetManager.MouseOverTarget, out _);
-                    bool typeOk = adjustedRow.TargetTypeValid(TargetManager.MouseOverTarget);
-                    if (rangeOk && typeOk) {
-                        nt = TargetManager.MouseOverTarget;
-                    }
-                    else if (!Configuration.IgnoreErrors) {
-                        ToastGui.ShowError(rangeOk ? "Invalid target." : "Target is not in range.");
-                        return false;
-                    }
-                }
-
-                if (nt is not null) {
-                    if (adjustedRow.TargetArea) {
-                        return GroundActionAtTarget(actManager, type, id, nt, param, origin, unk, location);
-                    }
-
-                    return UseActionHook.Original(actManager, type, id, nt.GameObjectId, param, origin, unk, location);
-                }
-
-                if (Configuration.DefaultCursorMouseover && ground) {
-                    Vector3 loc;
-                    var success = ActionManager.MemberFunctionPointers.GetGroundPositionForCursor((ActionManager*)actManager, &loc);
-                    if (success) {
-                        return GroundActionAtCursor(actManager, type, id, target, param, origin, unk, &loc);
-                    }
-
-                    ToastGui.ShowError("Invalid target.");
-                    return false;
-                }
+            }
+            catch(Exception ex)
+            {
+                Services.PluginLog.Error(ex.Message);
             }
 
             return UseActionHook.Original(actManager, type, id, target, param, origin, unk, location);
